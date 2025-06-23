@@ -56,6 +56,9 @@ class Simulation2D:
         )
 
     def timer(self):
+        """
+        Basic timer, to be run in a separate thread, to track how long the simulation takes.
+        """
         start = int(time.time())
         time.sleep(1)
         while threading.active_count() == 4:
@@ -64,6 +67,9 @@ class Simulation2D:
             print("\033[A\033[K\r" + f"Time elapsed: {int(diff/60)} minute(s) and {diff % 60} seconds.")
 
     def run_sim(self, cfg, lattice, dir, steps, shots):
+        """
+        Helper function; runs a Qiskit simulation given config, lattice, directory, number of steps and shots.
+        """
         cfg.prepare_for_simulation()
         runner = QiskitRunner(
             cfg,
@@ -73,10 +79,14 @@ class Simulation2D:
             steps,  # Number of time steps
             shots,  # Number of shots per time step
             dir,
-            statevector_snapshots=True,
+            statevector_snapshots=False,
         )
 
     def create_animation(self, simdir, output_filename):
+        """
+        (NOT MY WORK)
+        Creates a PyVista animation given the simulation directory in which the .vti files are stored.
+        """
         pv.set_plot_theme(themes.ParaViewTheme())
         vti_files = sorted(
             [f"{simdir}/{fname}" for fname in listdir(simdir) if fname.endswith(".vti")]
@@ -157,6 +167,9 @@ class Simulation2D:
         imageio.mimsave(output_filename, images, duration=1, loop=0)
 
     def sim_QTM(self, steps, shots):
+        """
+        Performs a Quantum Transport Method (collisionless) simulation, given number of steps and shots per time-step.
+        """
         dir = f"qlbm-output/collisionless-{self.dims[0]}x{self.dims[1]}-qiskit"
         create_directory_and_parents(dir)
         cfg = SimulationConfig(
@@ -167,9 +180,10 @@ class Simulation2D:
             target_platform="QISKIT",
             compiler_platform="QISKIT",
             optimization_level=0,
-            statevector_sampling=True,
+            statevector_sampling=False,
             execution_backend=AerSimulator(method="statevector"),
-            sampling_backend=AerSimulator(method="statevector"),
+            sampling_backend=None
+            #sampling_backend=AerSimulator(method="statevector"),
         )
         # Simulate the circuits using both snapshots
         print(f"Running {self.dims[0]}x{self.dims[1]} collisionless simulation...\n")
@@ -185,6 +199,10 @@ class Simulation2D:
         print("Animation created and saved.")
 
     def sim_STM(self, steps, shots):
+        """
+        Performs a Space-Time Method (with collision) simulation.
+        !!! Only compatible with D_2Q_4 (vs = 2) discretization !!!
+        """
         dir = f"qlbm-output/collision-{self.dims[0]}x{self.dims[1]}-qiskit"
         create_directory_and_parents(dir)
         cfg = SimulationConfig(
@@ -217,8 +235,3 @@ class Simulation2D:
         print("Simulation complete.")
         pv.set_plot_theme(themes.ParaViewTheme())
         self.create_animation(f"{dir}/paraview", f"collision-{self.dims[0]}-{self.dims[1]}.gif")
-
-sim = Simulation2D([16,8], 4) # Create a new Simulation2D class with specified dimensions and velocities.
-sim.sim_QTM(50, 1000) # Run QTM (collisionless) simulation with specified timesteps and snapshots.
-# Alternatively:
-#sim.sim_STM(50, 1000) # Run STM (with collision) simulation ' ' ' ' '
