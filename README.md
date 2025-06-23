@@ -9,10 +9,10 @@ To run a classical collisionless simulation of an 8x8 lattice with D_2Q_8 discre
 >>> sim = Simulation2D([8,8], 4)
 >>> sim.sim_QTM(10, 100)
 ```
-The PyVista animation will be saved to your CWD with the format: collisionless-8x8.gif.
+The PyVista animation will be saved to your CWD with the format: ```collisionless-8x8.gif```.
 
 To run a IBM QPU job with the same lattice and discretization, but with 2 steps and 8192 shots per time-step:
-(You will need an IBM Quantum Platform token which is associated with your IBM ID/IBM account.)
+(You will need an IBM Quantum Platform ```token``` which is associated with your IBM ID/IBM account.)
 
 ```python
 >>> fom ibm_qpu import *
@@ -21,4 +21,4 @@ To run a IBM QPU job with the same lattice and discretization, but with 2 steps 
 # You will now need to check the IBM Quantum Platfrom website and wait until the job is finished.
 >>> visualize(2)
 ```
-The PyVista animation will be saved to your CWD with the format: collisionless-8x8-ibm-qpu.gif.
+The PyVista animation will be saved to your CWD with the format: ```collisionless-8x8-ibm-qpu.gif```.
