@@ -16,7 +16,7 @@ To run a IBM QPU job with the same lattice and discretization, but with 2 steps 
 (You will need an IBM Quantum Platform ```token``` which is associated with your IBM ID/IBM account.)
 
 ```python
-fom ibm_qpu import *
+from ibm_qpu import *
 runner = IBM_QPU_Runner([8,8], token)
 runner.run(2) # run(steps, shots=8192) 
 # You will now need to check the IBM Quantum Platfrom website (https://quantum.ibm.com/workloads)
