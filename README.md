@@ -1,6 +1,8 @@
 ﻿# qlbm-mcgill
 
-Welcome to the QLBM McGill-Calcul Quebec Summer Research Project! Here's how to use the resources currently available:
+Welcome to the QLBM McGill-Calcul Quebec Summer Research Project!
+
+All programs made here use the QLBM software framework by [Calin A. Georgescu et. al.](https://arxiv.org/pdf/2411.19439)
 
 To run a classical collisionless simulation of an 8x8 lattice with D_2Q_8 discretization, running 10 steps with 100 shots per time-step:
 
