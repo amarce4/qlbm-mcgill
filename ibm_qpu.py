@@ -8,28 +8,40 @@ class StepCircuit():
     """
     circuit: QuantumCircuit
 
-    def __init__(self, lattice, num_steps, init_cond=None):
-        if type(init_cond == None):
-            self.circuit = CollisionlessInitialConditions(lattice).circuit
+    def __init__(self, lattice, num_steps, init_cond=None, collision=False):
+        if collision == False:
+            if type(init_cond == None):
+                self.circuit = CollisionlessInitialConditions(lattice).circuit
+            else:
+                self.circuit = init_cond
+            for i in range(0, num_steps):
+                self.circuit.compose(CQLBM(lattice).circuit, inplace=True)
+            self.circuit.compose(GridMeasurement(lattice).circuit, inplace=True)
         else:
-            self.circuit = init_cond
-        for i in range(0, num_steps):
-            self.circuit.compose(CQLBM(lattice).circuit, inplace=True)
-        self.circuit.compose(GridMeasurement(lattice).circuit, inplace=True)
-        #circuit.name = f"step {num_steps}"
+            if type(init_cond == None):
+                self.circuit = PointWiseSpaceTimeInitialConditions(lattice, grid_data=[((1, 5), (True, True, True, True))]).circuit
+            else:
+                self.circuit = init_cond
+            for i in range(0, num_steps):
+                self.circuit.compose(SpaceTimeQLBM(lattice).circuit, inplace=True)
+            self.circuit.compose(SpaceTimeGridVelocityMeasurement(lattice).circuit, inplace=True)
+        
 
 
 class IBM_QPU_Runner():
     """
     Runs a 2D collisionless job with D_2Q_8 discretization on an IBM QPU.
     run: runs the job using the Qiskit Sampler primitive. Returns the job that has been run.
-    visualize: takes the counts of the GridMeasurement data from the IBM QPU and turns it into a PyVista simulation.
+    visualize: takes the counts of the measurement data from the IBM QPU and turns it into a PyVista simulation.
+    draw: draws the animation to the screen.
     """
 
+    stm_lattice: SpaceTimeLattice
     lattice: CollisionlessLattice
     job_id: str
     dims: tuple
     service: QiskitRuntimeService
+    label: str
 
     def __init__(self, dims, token, vs=[4,4]):
         
@@ -43,13 +55,23 @@ class IBM_QPU_Runner():
             "lattice": {"dim": {"x": dims[0], "y": dims[1]}, "velocities": {"x": vs[0], "y": vs[1]}},
             }
         )
+        self.stm_lattice = SpaceTimeLattice(
+            num_timesteps=1,
+            lattice_data={
+                "lattice": {"dim": {"x": dims[0], "y": dims[1]}, "velocities": {"x": 2, "y": 2}},
+                "geometry": [],
+            },
+        )
         print("done.")
 
-    def run(self, steps, shots=8192):
+    def run(self, steps, shots=8192, collision=False):
 
         print("Creating circuits... ", end="")
 
-        step_qcs = [StepCircuit(self.lattice, i).circuit for i in range(steps+1)]
+        if collision == True:
+            step_qcs = [StepCircuit(self.stm_lattice, i, collision=True).circuit for i in range(steps+1)]
+        else:
+            step_qcs = [StepCircuit(self.lattice, i, collision=False).circuit for i in range(steps+1)]
 
         backend = QiskitRuntimeService().least_busy(simulator=False, operational=True, min_num_qubits=25)
         pass_manager = generate_preset_pass_manager(optimization_level=1, backend=backend)
@@ -69,9 +91,12 @@ class IBM_QPU_Runner():
         print(f"Job ID: {self.job_id}")
 
         return job
-
     
-    def visualize(self, steps):
+    def visualize(self, steps, collision=False):
+        if collision==False:
+            self.label = "collisionless"
+        else:
+            self.label = "with-collision"
 
         print("Creating visualization... ", end="")
 
@@ -79,13 +104,18 @@ class IBM_QPU_Runner():
         results = job.result()
         counts_data = [list(results[i].data.values())[0].get_counts() for i in range(steps+1)]
  
-        create_directory_and_parents(f"ibm-qpu-output\\collisionless-{self.dims[0]}x{self.dims[1]}-ibm-qpu")
-        resultGen = CollisionlessResult(self.lattice, f"ibm-qpu-output\\collisionless-{self.dims[0]}x{self.dims[1]}-ibm-qpu")
+        create_directory_and_parents(f"ibm-qpu-output\\{self.label}-{self.dims[0]}x{self.dims[1]}-ibm-qpu")
+        if collision == False:
+            resultGen = CollisionlessResult(self.lattice, f"ibm-qpu-output\\{self.label}-{self.dims[0]}x{self.dims[1]}-ibm-qpu")
+        else:
+            resultGen = CollisionlessResult(self.stm_lattice, f"ibm-qpu-output\\{self.label}-{self.dims[0]}x{self.dims[1]}-ibm-qpu")
 
         for i in range(steps+1):
             resultGen.save_timestep_counts(counts_data[i], i)
         resultGen.visualize_all_numpy_data()
 
-        create_animation(f"ibm-qpu-output\\collisionless-{self.dims[0]}x{self.dims[1]}-ibm-qpu\\paraview", f"collisionless-{self.dims[0]}x{self.dims[1]}-ibm-qpu.gif")
+        create_animation(f"ibm-qpu-output\\{self.label}-{self.dims[0]}x{self.dims[1]}-ibm-qpu\\paraview", f"{self.label}-{self.dims[0]}x{self.dims[1]}-ibm-qpu.gif")
         print("done.")
 
+    def draw(self):
+        Image(filename=f'{self.label}-{self.dims[0]}x{self.dims[1]}-ibm-qpu.gif')

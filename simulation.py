@@ -99,9 +99,9 @@ class Simulation2D:
             initial_conditions=PointWiseSpaceTimeInitialConditions(
                 self.stm_lattice, grid_data=[((1, 5), (True, True, True, True))]
             ),
-            algorithm=SpaceTimeQLBM(self.lattice),
-            postprocessing=EmptyPrimitive(self.lattice),
-            measurement=SpaceTimeGridVelocityMeasurement(self.lattice),
+            algorithm=SpaceTimeQLBM(self.stm_lattice),
+            postprocessing=EmptyPrimitive(self.stm_lattice),
+            measurement=SpaceTimeGridVelocityMeasurement(self.stm_lattice),
             target_platform="QISKIT",
             compiler_platform="QISKIT",
             optimization_level=0,
@@ -124,4 +124,4 @@ class Simulation2D:
         )
         print("Simulation complete.")
         pv.set_plot_theme(themes.ParaViewTheme())
-        create_animation(f"{dir}/paraview", f"collision-{self.dims[0]}-{self.dims[1]}.gif")
+        create_animation(f"{dir}/paraview", f"with-collision-{self.dims[0]}-{self.dims[1]}.gif")

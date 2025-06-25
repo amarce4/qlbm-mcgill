@@ -37,6 +37,7 @@ from pyvista import themes
 
 from qlbm.infra.reinitialize import CollisionlessReinitializer
 
+from IPython.display import Image
 
 def create_animation(simdir, output_filename):
     vti_files = sorted(
