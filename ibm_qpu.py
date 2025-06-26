@@ -33,7 +33,7 @@ class IBM_QPU_Runner():
     Runs a 2D collisionless job with D_2Q_8 discretization on an IBM QPU.
     run: runs the job using the Qiskit Sampler primitive. Returns the job that has been run.
     visualize: takes the counts of the measurement data from the IBM QPU and turns it into a PyVista simulation.
-    draw: draws the animation to the screen.
+    draw: draws the animation to the screen. 
     """
 
     stm_lattice: SpaceTimeLattice
@@ -64,18 +64,18 @@ class IBM_QPU_Runner():
         )
         print("done.")
 
-    def run(self, steps, shots=8192, collision=False):
+    def run(self, steps, shots=8192, collision=False, init_cond=None):
 
         print("Creating circuits... ", end="")
 
         if collision == True:
-            step_qcs = [StepCircuit(self.stm_lattice, i, collision=True).circuit for i in range(steps+1)]
+            step_qcs = [StepCircuit(self.stm_lattice, i, collision=True, init_cond=init_cond).circuit for i in range(steps+1)]
         else:
-            step_qcs = [StepCircuit(self.lattice, i, collision=False).circuit for i in range(steps+1)]
+            step_qcs = [StepCircuit(self.lattice, i, collision=False, init_cond=init_cond).circuit for i in range(steps+1)]
 
         backend = QiskitRuntimeService().least_busy(simulator=False, operational=True, min_num_qubits=25)
-        pass_manager = generate_preset_pass_manager(optimization_level=1, backend=backend)
 
+        pass_manager = generate_preset_pass_manager(optimization_level=1, backend=backend)
         qcs = [pass_manager.run(qc) for qc in step_qcs]
 
         sampler = Sampler(backend)
@@ -108,7 +108,7 @@ class IBM_QPU_Runner():
         if collision == False:
             resultGen = CollisionlessResult(self.lattice, f"ibm-qpu-output\\{self.label}-{self.dims[0]}x{self.dims[1]}-ibm-qpu")
         else:
-            resultGen = CollisionlessResult(self.stm_lattice, f"ibm-qpu-output\\{self.label}-{self.dims[0]}x{self.dims[1]}-ibm-qpu")
+            resultGen = SpaceTimeResult(self.stm_lattice, f"ibm-qpu-output\\{self.label}-{self.dims[0]}x{self.dims[1]}-ibm-qpu")
 
         for i in range(steps+1):
             resultGen.save_timestep_counts(counts_data[i], i)
@@ -118,4 +118,20 @@ class IBM_QPU_Runner():
         print("done.")
 
     def draw(self):
-        Image(filename=f'{self.label}-{self.dims[0]}x{self.dims[1]}-ibm-qpu.gif')
+        Draw(filename=f'{self.label}-{self.dims[0]}x{self.dims[1]}-ibm-qpu.gif')
+
+    def make(self, steps, shots=8192, init_cond=None):
+        job = self.run(steps, shots=shots, init_cond=init_cond)
+        
+        start = time.time()
+        print("Waiting for IBM QPU data...")
+        print()
+        while (job.status() != "DONE"):
+            time.sleep(1)
+            diff = int(time.time()) - start
+            print("\033[A\033[K\r" + f"Time elapsed: {int(diff/60)} minute(s) and {int(diff % 60)} second(s).")
+        print(f"Data received. Workload: {int(job.usage())} seconds.")
+        time.sleep(2) # make them wait for it.
+        self.visualize(steps)
+        time.sleep(1)
+        self.draw()

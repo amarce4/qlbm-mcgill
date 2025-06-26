@@ -23,7 +23,7 @@ from qlbm.lattice import SpaceTimeLattice
 from qlbm.infra import QiskitRunner, SimulationConfig
 from qlbm.lattice import CollisionlessLattice
 from qlbm.tools.utils import create_directory_and_parents
-from qlbm.infra.result import CollisionlessResult
+from qlbm.infra.result import CollisionlessResult, SpaceTimeResult
 
 from os import listdir, chdir
 
@@ -37,7 +37,7 @@ from pyvista import themes
 
 from qlbm.infra.reinitialize import CollisionlessReinitializer
 
-from IPython.display import Image
+from IPython.display import Image as Draw
 
 def create_animation(simdir, output_filename):
     vti_files = sorted(
