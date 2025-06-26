@@ -21,11 +21,9 @@ To run a IBM QPU job with the same lattice and discretization, but with 2 steps 
 ```python
 # must have 'ibm_qpu.py' and 'base.py' in current working directory
 from ibm_qpu import IBM_QPU_Runner
+token = "[your API token]"
 runner = IBM_QPU_Runner([8,8], token)
-runner.run(2) # run(steps, shots=8192) 
-# You will now need to check the IBM Quantum Platfrom website (https://quantum.ibm.com/workloads)
-# and wait until the job is finished.
-runner.visualize(2)
+runner.make(2) # runner.make(2, shots=8192)
 ```
 The PyVista animation will be saved to your CWD with the format: ```collisionless-8x8-ibm-qpu.gif```.
 
