@@ -31,10 +31,14 @@ The PyVista animation will be saved to your CWD with the format: ```collisionles
 #
 # TODO
 #
+# All: Implement error mitigation through post-processing techniques
+#   - Refer to Calcul Quebec coding demo
+#
 # All: Create a method of easily choosing initial conditions
 #   - Gates are applied to grid and velocity qubits to produce initial conditions 
 #
 # MonarQRunner: Run jobs on 24 qubit MonarQ, max lattice size 256x128 or 8x8x8 collisionless
+#   - POSTPONED: MonarQ under mainteance, Yukon only 6 qubits so QLBM unfeasable
 #   - Need a way to convert Qiskit StepCircuit.circuit array to PennyLane (done in one function)
 #   - Post-processing will require conversion of MonarQ PennyLane-formatted result counts to Qiskit
 #     for use in QLBM infrastructure.
