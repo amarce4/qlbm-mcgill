@@ -25,6 +25,16 @@ token = "[your API token]"
 runner = IBM_QPU_Runner([8,8], token)
 runner.make(2) # runner.make(2, shots=8192)
 ```
+
+Some jobs may take a while due to long queues, so you can use the job id to create the animation, provided the job is complete:
+
+```python
+job_id = "[job id]"
+token = "[your API token]"
+runner = IBM_QPU_Runner([8,8], token)
+runner.job_id = job_id
+runner.visualize(2)
+```
 The PyVista animation will be saved to your CWD with the format: ```collisionless-8x8-ibm-qpu.gif```.
 
 ```python
