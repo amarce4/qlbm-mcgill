@@ -66,7 +66,7 @@ class IBM_QPU_Runner():
 
     def run(self, steps, shots=8192, collision=False, init_cond=None):
 
-        print("Creating circuits... ", end="")
+        print("Creating and transpiling circuits... ", end="")
 
         if collision == True:
             step_qcs = [StepCircuit(self.stm_lattice, i, collision=True, init_cond=init_cond).circuit for i in range(steps+1)]
@@ -78,8 +78,13 @@ class IBM_QPU_Runner():
         pass_manager = generate_preset_pass_manager(optimization_level=1, backend=backend)
         qcs = [pass_manager.run(qc) for qc in step_qcs]
 
-        sampler = Sampler(backend)
+        options = SamplerOptions()
+        options.dynamical_decoupling.enable = True
+        # Turn on gate twirling. Requires qiskit_ibm_runtime 0.23.0 or later.
+        options.twirling.enable_gates = True
         
+        sampler = Sampler(backend, options=options)
+
         print("done.")
         print(f"Sending {steps} step job to {backend} with {shots} shots per time-step... ", end="")
 
@@ -92,7 +97,7 @@ class IBM_QPU_Runner():
 
         return job
     
-    def visualize(self, steps, collision=False):
+    def visualize(self, steps, shots=None, collision=False):
         if collision==False:
             self.label = "collisionless"
         else:
@@ -114,24 +119,24 @@ class IBM_QPU_Runner():
             resultGen.save_timestep_counts(counts_data[i], i)
         resultGen.visualize_all_numpy_data()
 
-        create_animation(f"ibm-qpu-output\\{self.label}-{self.dims[0]}x{self.dims[1]}-ibm-qpu\\paraview", f"{self.label}-{self.dims[0]}x{self.dims[1]}-ibm-qpu.gif")
+        if (type(shots) == None):
+            create_animation(f"ibm-qpu-output\\{self.label}-{self.dims[0]}x{self.dims[1]}-ibm-qpu\\paraview", f"{self.label}-{self.dims[0]}x{self.dims[1]}-ibm-qpu.gif")
+        elif (type(shots) == int):
+            create_animation(f"ibm-qpu-output\\{self.label}-{self.dims[0]}x{self.dims[1]}-ibm-qpu\\paraview", f"{self.label}-{self.dims[0]}x{self.dims[1]}-ibm-qpu_{shots}_shots.gif")
         print("done.")
-
-    def draw(self):
-        Draw(filename=f'{self.label}-{self.dims[0]}x{self.dims[1]}-ibm-qpu.gif')
+        print(f"Animation saved as ''{self.label}-{self.dims[0]}x{self.dims[1]}-ibm-qpu_{shots}_shots.gif''.")
 
     def make(self, steps, shots=8192, init_cond=None):
         job = self.run(steps, shots=shots, init_cond=init_cond)
         
-        start = time.time()
+        start = int(time.time())
         print("Waiting for IBM QPU data...")
+        time.sleep(1)
         print()
         while (job.status() != "DONE"):
-            time.sleep(1)
+            time.sleep(0.9)
             diff = int(time.time()) - start
-            print("\033[A\033[K\r" + f"Time elapsed: {int(diff/60)} minute(s) and {int(diff % 60)} second(s).")
+            print("\033[A\033[K\r" + f"Time elapsed: {int(diff/60)} minute(s) and {diff % 60} second(s).")
         print(f"Data received. Workload: {int(job.usage())} seconds.")
         time.sleep(2) # make them wait for it.
-        self.visualize(steps)
-        time.sleep(1)
-        self.draw()
+        self.visualize(steps, shots=shots)
