@@ -54,8 +54,12 @@ The PyVista animation will be saved to your CWD with the format: ```collisionles
 #   - Post-processing will require conversion of MonarQ PennyLane-formatted result counts to Qiskit
 #     for use in QLBM infrastructure.
 #
-# All: Use Quantum State Topography (QST) to reinitialize circuits to avoid depth limits
-#   - QST requires 4^n measurements for n qubits, so it may be impossible at this scale
+# All: Use Quantum State Tomography (QST) to reinitialize circuits to avoid depth limits
+#   - QST requires 4^n measurements for n qubits, so it may be impossible at larger scale
+#         - 4x2 (smallest visualizable lattice): 5 qubits to measure (3 grid, 2 velocity)
+#   - We will first require decent results from 1 time-step run on a QPU,
+#     from there use QST to get the estimated statevector of the grid and velocity qubits,
+#     onto which |0>s are prepended and appended for ancillae, and then used for reinitialization
 #
 # Simulation2D: Include obstacles (will not be run through QPU, purely visual)
 #   - Low priority due to obstacles causing too deep of a circuit (200+)
