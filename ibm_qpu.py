@@ -8,7 +8,11 @@ class StepCircuit():
     """
     circuit: QuantumCircuit
 
-    def __init__(self, lattice, num_steps, init_cond=None, collision=False):
+    def __init__(self, 
+                 lattice: CollisionlessLattice | SpaceTimeLattice, 
+                 num_steps: int, 
+                 init_cond: None | QuantumCircuit = None, 
+                 collision: bool = False):
         if collision == False:
             if type(init_cond == None):
                 self.circuit = CollisionlessInitialConditions(lattice).circuit
@@ -25,6 +29,7 @@ class StepCircuit():
             for i in range(0, num_steps):
                 self.circuit.compose(SpaceTimeQLBM(lattice).circuit, inplace=True)
             self.circuit.compose(SpaceTimeGridVelocityMeasurement(lattice).circuit, inplace=True)
+        self.circuit = remove_idle_wires(self.circuit)
         
 
 
@@ -43,7 +48,11 @@ class IBM_QPU_Runner():
     service: QiskitRuntimeService
     label: str
 
-    def __init__(self, dims, token, vs=[4,4]):
+    def __init__(
+            self, 
+            dims: list | tuple, 
+            token: str, 
+            vs: list | tuple = [4,4]):
         
         print(f"Initializing {dims[0]}x{dims[1]} runner... ", end="")
         self.service = QiskitRuntimeService(channel="ibm_quantum", 
@@ -64,7 +73,12 @@ class IBM_QPU_Runner():
         )
         print("done.")
 
-    def run(self, steps, shots=8192, collision=False, init_cond=None):
+    def run(
+            self, 
+            steps: int, 
+            shots: int = 8192, 
+            collision: bool = False, 
+            init_cond: None | QuantumCircuit = None):
 
         print("Creating and transpiling circuits... ", end="")
 
@@ -97,7 +111,11 @@ class IBM_QPU_Runner():
 
         return job
     
-    def visualize(self, steps, shots=None, collision=False):
+    def visualize(
+            self, 
+            steps: int, 
+            shots: int | None = None, 
+            collision: bool = False):
         if collision==False:
             self.label = "collisionless"
         else:
@@ -126,7 +144,12 @@ class IBM_QPU_Runner():
         print("done.")
         print(f"Animation saved as ''{self.label}-{self.dims[0]}x{self.dims[1]}-ibm-qpu_{shots}_shots.gif''.")
 
-    def make(self, steps, shots=8192, init_cond=None):
+    def make(
+            self, 
+            steps: int, 
+            shots: int = 8192, 
+            init_cond: None | QuantumCircuit = None):
+        
         job = self.run(steps, shots=shots, init_cond=init_cond)
         
         start = int(time.time())
@@ -136,7 +159,8 @@ class IBM_QPU_Runner():
         while (job.status() != "DONE"):
             time.sleep(0.9)
             diff = int(time.time()) - start
-            print("\033[A\033[K\r" + f"Time elapsed: {int(diff/60)} minute(s) and {diff % 60} second(s).")
-        print(f"Data received. Workload: {int(job.usage())} seconds.")
+            print("\r", end="")
+            print(f"Time elapsed: {int(diff/60)} minute(s) and {diff % 60} second(s).", end="")
+        print(f"\nData received. Workload: {int(job.usage())} seconds.")
         time.sleep(2) # make them wait for it.
         self.visualize(steps, shots=shots)

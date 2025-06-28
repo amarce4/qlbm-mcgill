@@ -4,8 +4,12 @@ from qiskit import QuantumCircuit, ClassicalRegister
 from qiskit_ibm_runtime import QiskitRuntimeService
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 
-from qiskit_ibm_runtime import Sampler
-from qiskit_aer.primitives import Sampler as SimSampler
+from qiskit_ibm_runtime import SamplerV2 as Sampler
+from qiskit_aer.primitives import SamplerV2 as SimSampler
+from qiskit_aer.primitives import EstimatorV2 as SimEstimator
+from qiskit_ibm_runtime import SamplerOptions
+# from qiskit_aer.primitives import EstimatorV2 as Estimator
+# from qiskit_ibm_runtime import EstimatorOptions
 
 from qlbm.components import (
     CQLBM,
@@ -39,7 +43,11 @@ from qlbm.infra.reinitialize import CollisionlessReinitializer
 
 from IPython.display import Image as Draw
 
-def create_animation(simdir, output_filename):
+def create_animation(simdir: str, output_filename: str):
+    """
+    Creates a PyVista animation given the directory in which simulation '.vti' files are stored.
+    (NOT MY WORK: credit to QLBM)
+    """
     vti_files = sorted(
         [f"{simdir}/{fname}" for fname in listdir(simdir) if fname.endswith(".vti")]
     )
@@ -116,4 +124,29 @@ def create_animation(simdir, output_filename):
         images.append(np.array(pil_img))
 
     # Create the GIF from the collected images
-    imageio.mimsave(output_filename, images, duration=1, loop=0)
+    imageio.mimsave(output_filename, images, duration=3, loop=0)
+
+def count_gates(qc: QuantumCircuit):
+    """
+    Helper function for remove_idle_wires()
+    (NOT MY WORK: credit to Qiskit)
+    """
+    gate_count = { qubit: 0 for qubit in qc.qubits }
+    for gate in qc.data:
+        for qubit in gate.qubits:
+            gate_count[qubit] += 1
+    return gate_count
+
+def remove_idle_wires(qc: QuantumCircuit):
+    """
+    Removes any wires that do not have any gates acting upon them.
+    This is useful for ibm_qpu.StepCircuit, since extra ancilla qubits are added to the circuit 
+    for use in obstacle operators. Since we are not using obstacles, these qubits can be removed.
+    (NOT MY WORK: credit to Qiskit)
+    """
+    qc_out = qc.copy()
+    gate_count = count_gates(qc_out)
+    for qubit, count in gate_count.items():
+        if count == 0:
+            qc_out.qubits.remove(qubit)
+    return qc_out
