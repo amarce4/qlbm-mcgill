@@ -51,40 +51,40 @@ class Simulation2D:
             steps,  # Number of time steps
             shots,  # Number of shots per time step
             dir,
-            statevector_snapshots=False,
+            statevector_snapshots=True,
         )
 
-    def sim_QTM(self, steps, shots, initial_conditions=None):
+    def sim_QTM(self, steps, shots):#, initial_conditions=None):
         """
         Performs a Quantum Transport Method (collisionless) simulation, given number of steps and shots per time-step.
         """
         dir = f"qlbm-output/collisionless-{self.dims[0]}x{self.dims[1]}-qiskit"
         create_directory_and_parents(dir)
-        if initial_conditions == None:
-                initial_conditions=CollisionlessInitialConditions(self.qtm_lattice),
+        # if initial_conditions == None:
+        #         initial_conditions=CollisionlessInitialConditions(self.qtm_lattice),
         cfg = SimulationConfig(
-            initial_conditions=initial_conditions,
+            initial_conditions=CollisionlessInitialConditions(self.qtm_lattice),
             algorithm=CQLBM(self.qtm_lattice),
             postprocessing=EmptyPrimitive(self.qtm_lattice),
             measurement=GridMeasurement(self.qtm_lattice),
             target_platform="QISKIT",
             compiler_platform="QISKIT",
             optimization_level=0,
-            statevector_sampling=False,
+            statevector_sampling=True,
             execution_backend=AerSimulator(method="statevector"),
-            sampling_backend=None
-            #sampling_backend=AerSimulator(method="statevector"),
+            # sampling_backend=None
+            sampling_backend=AerSimulator(method="statevector"),
         )
         # Simulate the circuits using both snapshots
         print(f"Running {self.dims[0]}x{self.dims[1]} collisionless simulation...\n")
-        sim_thread = threading.Thread(target=self.run_sim, args=((cfg, self.qtm_lattice, dir, steps, shots,)))
-        time_thread = threading.Thread(target=self.timer)
-        sim_thread.start()
-        time_thread.start()
-        sim_thread.join()
-        time_thread.join()
+        # sim_thread = threading.Thread(target=self.run_sim, args=((cfg, self.qtm_lattice, dir, steps, shots,)))
+        # time_thread = threading.Thread(target=self.timer)
+        # sim_thread.start()
+        # time_thread.start()
+        # sim_thread.join()
+        # time_thread.join()
+        self.run_sim(cfg, self.qtm_lattice, dir, steps, shots)
         print("Simulation complete. Creating animation...")
-        
         create_animation(f"{dir}/paraview", f"collisionless-{self.dims[0]}x{self.dims[1]}.gif")
         print("Animation created and saved.")
 

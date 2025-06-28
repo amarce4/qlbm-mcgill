@@ -20,6 +20,7 @@ class StepCircuit():
                 self.circuit = init_cond
             for i in range(0, num_steps):
                 self.circuit.compose(CQLBM(lattice).circuit, inplace=True)
+                self.circuit.reset([-3,-4,0,1])
             self.circuit.compose(GridMeasurement(lattice).circuit, inplace=True)
         else:
             if type(init_cond == None):
