@@ -45,9 +45,6 @@ The PyVista animation will be saved to the CWD with the format: ```collisionless
 # All: Implement error mitigation through post-processing techniques
 #   - Refer to Calcul Quebec coding demo
 #
-# All: Create a method of easily choosing initial conditions
-#   - Gates are applied to grid and velocity qubits to produce initial conditions 
-#
 # MonarQRunner: Run jobs on 24 qubit MonarQ, max lattice size 2x2 or maybe 4x2 if lucky
 #   - POSTPONED: MonarQ under mainteance, Yukon only 6 qubits so QLBM unfeasable
 #   - Need a way to convert Qiskit StepCircuit.circuit array to PennyLane (done in one function)
@@ -60,6 +57,9 @@ The PyVista animation will be saved to the CWD with the format: ```collisionless
 #   - We will first require decent results from 1 time-step run on a QPU,
 #     from there use QST to get the estimated statevector of the grid and velocity qubits,
 #     onto which |0>s are prepended and appended for ancillae, and then used for reinitialization
+#
+# All: Create a method of easily choosing initial conditions
+#   - Gates are applied to grid and velocity qubits to produce initial conditions 
 #
 # Simulation2D: Include obstacles (will not be run through QPU, purely visual)
 #   - Low priority due to obstacles causing too deep of a circuit (200+)
