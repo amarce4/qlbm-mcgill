@@ -13,10 +13,10 @@ sim = Simulation2D([8,8], 4)
 sim.sim_QTM(10, 100)
 # sim.sim_STM() can do simulations with collision, but only at a D_2Q_4 discretization
 ```
-The PyVista animation will be saved to your CWD with the format: ```collisionless-8x8.gif```.
+The PyVista animation will be saved to the CWD with the format: ```collisionless-8x8.gif```.
 
 To run a IBM QPU job with the same lattice and discretization, but with 2 steps and 8192 shots per time-step:
-(You will need an IBM Quantum Platform ```token``` which is associated with your IBM ID/IBM account.)
+(This requires an IBM Quantum Platform ```token```, which is associated with your IBM ID/IBM account.)
 
 ```python
 # must have 'ibm_qpu.py' and 'base.py' in current working directory
@@ -24,10 +24,10 @@ from ibm_qpu import IBM_QPU_Runner
 token = "[your API token]"
 runner = IBM_QPU_Runner([8,8], token)
 runner.make(2) # runner.make(2, shots=8192)
-# make() will run() and visualize() the job with a timer to show how long the IBM QPU took.
+# make() will run() and visualize() the job with a timer to show how long the IBM QPU took
 ```
 
-Some jobs may take a while due to long queues, so you can use the job id to create the animation, provided the job is complete:
+Some jobs may take a while due to long queues, so the job id may be used instead to create the animation, provided the job is complete:
 
 ```python
 job_id = "[job id]"
@@ -36,7 +36,7 @@ runner = IBM_QPU_Runner([8,8], token)
 runner.job_id = job_id
 runner.visualize(2)
 ```
-The PyVista animation will be saved to your CWD with the format: ```collisionless-8x8-ibm-qpu.gif```.
+The PyVista animation will be saved to the CWD with the format: ```collisionless-8x8-ibm-qpu.gif```.
 
 ```python
 #
@@ -48,7 +48,7 @@ The PyVista animation will be saved to your CWD with the format: ```collisionles
 # All: Create a method of easily choosing initial conditions
 #   - Gates are applied to grid and velocity qubits to produce initial conditions 
 #
-# MonarQRunner: Run jobs on 24 qubit MonarQ, max lattice size 256x128 or 8x8x8 collisionless
+# MonarQRunner: Run jobs on 24 qubit MonarQ, max lattice size 2x2 or maybe 4x2 if lucky
 #   - POSTPONED: MonarQ under mainteance, Yukon only 6 qubits so QLBM unfeasable
 #   - Need a way to convert Qiskit StepCircuit.circuit array to PennyLane (done in one function)
 #   - Post-processing will require conversion of MonarQ PennyLane-formatted result counts to Qiskit
