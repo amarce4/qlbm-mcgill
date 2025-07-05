@@ -42,8 +42,20 @@ The PyVista animation will be saved to the CWD with the format: ```collisionless
 #
 # TODO
 #
-# All: Implement error mitigation through post-processing techniques
-#   - Refer to Calcul Quebec coding demo
+# Implement error mitigation through post-processing techniques
+#   - Calcul Quebec currently implements the following:
+#         - Readout Measurement Mitigation: correction of measurement errors.
+#         - Iterative Bayesian Unfolding (IBU): iterative technique to find a more precise distribution of results.
+#     and are currently developing:
+#         - Zero Noise Extrapolation (ZNE): the circuit is ran at different noise levels to extrapolate an ideal result at the zero-noise limit.
+#         - Digital Dynamical Decoupling (DDD): a sequence of identity gates is applied to inactive qubits during circuit execution to limit decoherence effects.
+#   - Other mitigation techniques exist, such as
+#         - Multiple circuits can be run simultaneously depending on available qubits, which can allow redundancy and/or save on resources
+#         - Quantum Repitition Codes, or even Quantum Surface Codes, are also possible to implement: https://github.com/quantumjim/qec_lectures?tab=readme-ov-file
+#
+# Introduce a decoherence/noise/error model for classical simulation
+#   - This is important for studying how close we are to implementation in NISQ
+#   - Should be possible using Qiskit's SamplerOptions
 #
 # MonarQRunner: Run jobs on 24 qubit MonarQ, max lattice size 2x2 or maybe 4x2 if lucky
 #   - POSTPONED: MonarQ under mainteance, Yukon only 6 qubits so QLBM unfeasable
