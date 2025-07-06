@@ -42,7 +42,7 @@ The PyVista animation will be saved to the CWD with the format: ```collisionless
 #
 # TODO
 #
-# Implement error mitigation: post-processing & 
+# Implement error mitigation
 #   - Calcul Quebec currently implements the following:
 #         - Readout Measurement Mitigation: correction of measurement errors.
 #           https://qiskit-community.github.io/qiskit-experiments/manuals/measurement/readout_mitigation.html
