@@ -42,16 +42,23 @@ The PyVista animation will be saved to the CWD with the format: ```collisionless
 #
 # TODO
 #
-# Implement error mitigation through post-processing techniques
+# Implement error mitigation: post-processing & 
 #   - Calcul Quebec currently implements the following:
 #         - Readout Measurement Mitigation: correction of measurement errors.
-#         - Iterative Bayesian Unfolding (IBU): iterative technique to find a more precise distribution of results.
+#           https://qiskit-community.github.io/qiskit-experiments/manuals/measurement/readout_mitigation.html
+#         - Iterative Bayesian Unfolding (IBU): iterative technique to find a more precise
+#           distribution of results.
 #     and are currently developing:
-#         - Zero Noise Extrapolation (ZNE): the circuit is ran at different noise levels to extrapolate an ideal result at the zero-noise limit.
-#         - Digital Dynamical Decoupling (DDD): a sequence of identity gates is applied to inactive qubits during circuit execution to limit decoherence effects.
+#         - Zero Noise Extrapolation (ZNE): the circuit is ran at different noise levels to
+#           extrapolate an ideal result at the zero-noise limit.
+#         - Digital Dynamical Decoupling (DDD): a sequence of identity gates is applied to
+#           inactive qubits during circuit execution to limit decoherence effects.
+#           Notably, Qiskit has dynamical_decoupling() in it's Sampler primitive.
 #   - Other mitigation techniques exist, such as
-#         - Multiple circuits can be run simultaneously depending on available qubits, which can allow redundancy and/or save on resources
-#         - Quantum Repitition Codes, or even Quantum Surface Codes, are also possible to implement: https://github.com/quantumjim/qec_lectures?tab=readme-ov-file
+#         - Multiple circuits can be run simultaneously depending on available qubits, which
+#           can allow redundancy and/or save on resources
+#         - Quantum Repitition Codes, or even Quantum Surface Codes, are also possible to
+#           implement: https://github.com/quantumjim/qec_lectures?tab=readme-ov-file
 #
 # Introduce a decoherence/noise/error model for classical simulation
 #   - This is important for studying how close we are to implementation in NISQ
@@ -64,6 +71,7 @@ The PyVista animation will be saved to the CWD with the format: ```collisionless
 #     for use in QLBM infrastructure.
 #
 # All: Use Quantum State Tomography (QST) to reinitialize circuits to avoid depth limits
+#     https://qiskit-community.github.io/qiskit-experiments/manuals/verification/state_tomography.html
 #   - QST requires 4^n measurements for n qubits, so it may be impossible at larger scale
 #         - 4x2 (smallest visualizable lattice): 5 qubits to measure (3 grid, 2 velocity)
 #   - We will first require decent results from 1 time-step run on a QPU,
