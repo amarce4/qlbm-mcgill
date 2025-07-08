@@ -15,6 +15,7 @@ sim.sim_QTM(10, 100)
 ```
 The PyVista animation will be saved to the CWD with the format: ```collisionless-8x8.gif```.
 
+The following is outdated given the sunset of IBM Quantum Platform Classic.
 To run a IBM QPU job with the same lattice and discretization, but with 2 steps and 8192 shots per time-step:
 (This requires an IBM Quantum Platform ```token```, which is associated with your IBM ID/IBM account.)
 
