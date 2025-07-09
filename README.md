@@ -15,15 +15,26 @@ sim.sim_QTM(10, 100)
 ```
 The PyVista animation will be saved to the CWD with the format: ```collisionless-8x8.gif```.
 
-The following is outdated given the sunset of IBM Quantum Platform Classic.
 To run a IBM QPU job with the same lattice and discretization, but with 2 steps and 8192 shots per time-step:
-(This requires an IBM Quantum Platform ```token```, which is associated with your IBM ID/IBM account.)
+(This requires an IBM ```token``` and ```instance```, which are created on the [IBM Quantum Platform](https://quantum.cloud.ibm.com/).)
 
 ```python
 # must have 'ibm_qpu.py' and 'base.py' in current working directory
 from ibm_qpu import IBM_QPU_Runner
-token = "[your API token]"
-runner = IBM_QPU_Runner([8,8], token)
+from qiskit_ibm_runtime import QiskitRuntimeService
+
+name = "[custom name, can be set to anything]"
+
+QiskitRuntimeService.save_account(
+  token="[your API token]",
+  channel="ibm_cloud", 
+  instance="[your instance name]", 
+  name=name, 
+  overwrite=True,
+  set_as_default=True
+)
+
+runner = IBM_QPU_Runner([8,8], name)
 runner.make(2) # runner.make(2, shots=8192)
 # make() will run() and visualize() the job with a timer to show how long the IBM QPU took
 ```
@@ -31,9 +42,9 @@ runner.make(2) # runner.make(2, shots=8192)
 Some jobs may take a while due to long queues, so the job id may be used instead to create the animation, provided the job is complete:
 
 ```python
+# assuming a KeyboardInterrupt of the previous block of code, so "name" is associated to an IBM account
 job_id = "[job id]"
-token = "[your API token]"
-runner = IBM_QPU_Runner([8,8], token)
+runner = IBM_QPU_Runner([8,8], name)
 runner.job_id = job_id
 runner.visualize(2)
 ```
@@ -54,7 +65,9 @@ The PyVista animation will be saved to the CWD with the format: ```collisionless
 #           extrapolate an ideal result at the zero-noise limit.
 #         - Digital Dynamical Decoupling (DDD): a sequence of identity gates is applied to
 #           inactive qubits during circuit execution to limit decoherence effects.
-#           Notably, Qiskit has dynamical_decoupling() in it's Sampler primitive.
+#   - Qiskit's Sampler primitive implements:
+#         - Dynamical Decoupling
+#         - Gate Twirling
 #   - Other mitigation techniques exist, such as
 #         - Multiple circuits can be run simultaneously depending on available qubits, which
 #           can allow redundancy and/or save on resources
