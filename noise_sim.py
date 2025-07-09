@@ -1,0 +1,76 @@
+from base import *
+
+class Noise_Simulation2D(Runner):
+     
+    single_depolarizing_prob: float
+    double_depolarizing_prob: float
+    noise_model: NoiseModel
+    lattice: CollisionlessLattice
+    dims: tuple | list
+    label: str
+
+    def __init__(
+            self, 
+            single_prob: float, 
+            double_prob: float, 
+            dims: tuple | list, 
+            vs: tuple | list = [4,4]
+        ) -> None:
+          
+        self.dims = dims
+        self.lattice = CollisionlessLattice(
+            {
+            "lattice": {"dim": {"x": dims[0], "y": dims[1]}, "velocities": {"x": vs[0], "y": vs[1]}},
+            }
+        )
+
+        self.single_depolarizing_prob = single_prob
+        self.double_depolarizing_prob = double_prob
+
+        self.noise_model = NoiseModel()
+        self.noise_model.add_all_qubit_quantum_error(
+            depolarizing_error(double_prob, 2), ["cx"]
+        )
+        self.noise_model.add_all_qubit_quantum_error(
+            depolarizing_error(single_prob, 1), ["u", "p", "h"]
+        )
+
+    def run(self, steps, shots=1024):
+
+        step_qcs = [StepCircuit(self.lattice, i).circuit.decompose() for i in range(steps+1)]
+        
+        noisy_sampler = SimSampler(
+            options=dict(backend_options=dict(noise_model=self.noise_model))
+        )
+        # The circuit needs to be transpiled to the AerSimulator target
+        pass_manager = generate_preset_pass_manager(3, AerSimulator())
+        qcs = [pass_manager.run(qc) for qc in step_qcs]
+        job = noisy_sampler.run(qcs, shots=shots)
+        result = job.result()
+        
+        counts = [list(result[i].data.values())[0].get_counts() for i in range(steps+1)]
+        return counts
+
+
+    def visualize(self, steps, counts):
+
+        self.label = f"noisy-collisionless-simulation-{self.dims[0]}x{self.dims[1]}_{self.single_depolarizing_prob}-single-{self.double_depolarizing_prob}-double"
+
+        rmdir_rf(f"noise-sim-output\\{self.label}")
+        create_directory_and_parents(f"noise-sim-output\\{self.label}")
+        resultGen = CollisionlessResult(self.lattice, f"noise-sim-output\\{self.label}")
+
+        for i in range(steps+1):
+            resultGen.save_timestep_counts(counts[i], i)
+        resultGen.visualize_all_numpy_data()
+
+        create_animation(f"noise-sim-output\\{self.label}\\paraview", f"{self.label}.gif")
+        return self.label
+
+    def make(self, steps, shots=1024):
+        print(f"Running {self.dims[0]}x{self.dims[1]} simulation with {self.single_depolarizing_prob} single and {self.double_depolarizing_prob} double gate error probabilities...")
+        counts = self.run(steps, shots=shots)
+        print(f"Creating visualization...")
+        vis = self.visualize(steps, counts)
+        print("Done.")
+        return f"{vis}.gif" 

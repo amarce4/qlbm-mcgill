@@ -1,41 +1,6 @@
 from base import *
 
-class StepCircuit():
-    """
-    Circuit structure around which the *current* QPU implementation takes.
-    0 steps: only initial conditions and grid measurement.
-    n steps: initial conditions, n CQLBM algorithm steps, and then grid measurement.
-    """
-    circuit: QuantumCircuit
-
-    def __init__(self, 
-                 lattice: CollisionlessLattice | SpaceTimeLattice, 
-                 num_steps: int, 
-                 init_cond: None | QuantumCircuit = None, 
-                 collision: bool = False
-            ) -> None:
-        if collision == False:
-            if type(init_cond == None):
-                self.circuit = CollisionlessInitialConditions(lattice).circuit
-            else:
-                self.circuit = init_cond
-            for i in range(0, num_steps):
-                self.circuit.compose(CQLBM(lattice).circuit, inplace=True)
-                self.circuit.reset([-3,-4,0,1]) # ancilla qubits
-            self.circuit.compose(GridMeasurement(lattice).circuit, inplace=True)
-        else:
-            if type(init_cond == None):
-                self.circuit = PointWiseSpaceTimeInitialConditions(lattice, grid_data=[((1, 5), (True, True, True, True))]).circuit
-            else:
-                self.circuit = init_cond
-            for i in range(0, num_steps):
-                self.circuit.compose(SpaceTimeQLBM(lattice).circuit, inplace=True)
-            self.circuit.compose(SpaceTimeGridVelocityMeasurement(lattice).circuit, inplace=True)
-        self.circuit = remove_idle_wires(self.circuit)
-        
-
-
-class IBM_QPU_Runner():
+class IBM_QPU_Runner(Runner):
     """
     Runs a 2D collisionless job with D_2Q_8 discretization on an IBM QPU.
     run: runs the job using the Qiskit Sampler primitive. Returns the job that has been run.

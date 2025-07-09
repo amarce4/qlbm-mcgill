@@ -11,6 +11,9 @@ from qiskit_ibm_runtime import SamplerOptions
 # from qiskit_aer.primitives import EstimatorV2 as Estimator
 # from qiskit_ibm_runtime import EstimatorOptions
 
+from qiskit import transpile
+from qiskit_aer.noise import NoiseModel, depolarizing_error
+
 from qlbm.components import (
     CQLBM,
     CollisionlessInitialConditions,
@@ -44,6 +47,80 @@ from qlbm.infra.reinitialize import CollisionlessReinitializer
 
 from IPython.display import Image as Draw
 
+from abc import ABC, abstractmethod
+
+class Runner(ABC):
+    
+    lattice: CollisionlessLattice
+    dims: tuple | list
+
+    def __init__(self):
+        super().__init__()
+
+    @abstractmethod
+    def run(
+        self, 
+        steps: int, 
+        shots: int = 1024):
+        """
+        Runs "steps" number of CQLBM algorithm circuits with "shots" shots.
+        """
+        pass
+
+    @abstractmethod
+    def visualize(
+        self,
+        steps: int,
+        shots: int = 1024):
+        """
+        Visualizes the data in a ".gif" file.
+        """
+        pass
+
+    @abstractmethod
+    def make(
+        self,
+        steps: int,
+        shots: int = 1024):
+        """
+        Runs and visualizes the lattice.
+        """
+        pass
+
+
+class StepCircuit():
+    """
+    Circuit structure around which the *current* QPU implementation takes.
+    0 steps: only initial conditions and grid measurement.
+    n steps: initial conditions, n CQLBM algorithm steps, and then grid measurement.
+    """
+    circuit: QuantumCircuit
+
+    def __init__(self, 
+                 lattice: CollisionlessLattice | SpaceTimeLattice, 
+                 num_steps: int, 
+                 init_cond: None | QuantumCircuit = None, 
+                 collision: bool = False
+            ) -> None:
+        if collision == False:
+            if type(init_cond == None):
+                self.circuit = CollisionlessInitialConditions(lattice).circuit
+            else:
+                self.circuit = init_cond
+            for i in range(0, num_steps):
+                self.circuit.compose(CQLBM(lattice).circuit, inplace=True)
+                self.circuit.reset([-3,-4,0,1]) # ancilla qubits
+            self.circuit.compose(GridMeasurement(lattice).circuit, inplace=True)
+        else:
+            if type(init_cond == None):
+                self.circuit = PointWiseSpaceTimeInitialConditions(lattice, grid_data=[((1, 5), (True, True, True, True))]).circuit
+            else:
+                self.circuit = init_cond
+            for i in range(0, num_steps):
+                self.circuit.compose(SpaceTimeQLBM(lattice).circuit, inplace=True)
+            self.circuit.compose(SpaceTimeGridVelocityMeasurement(lattice).circuit, inplace=True)
+        self.circuit = remove_idle_wires(self.circuit)
+     
 class Lattice(CollisionlessLattice):
 
     dims: list | tuple
@@ -59,6 +136,12 @@ class Lattice(CollisionlessLattice):
             }
         )
     pass
+
+def rmdir_rf(dir: str):
+    try:
+        rmtree(dir)
+    except OSError:
+        pass
 
 def create_animation(simdir: str, output_filename: str):
     """
