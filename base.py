@@ -1,7 +1,7 @@
 from qiskit_aer import AerSimulator
 from qiskit import QuantumCircuit, ClassicalRegister
 
-from qiskit_ibm_runtime import QiskitRuntimeService
+from qiskit_ibm_runtime import QiskitRuntimeService, IBMBackend
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 
 from qiskit_ibm_runtime import SamplerV2 as Sampler
@@ -29,7 +29,8 @@ from qlbm.lattice import CollisionlessLattice
 from qlbm.tools.utils import create_directory_and_parents
 from qlbm.infra.result import CollisionlessResult, SpaceTimeResult
 
-from os import listdir, chdir
+from os import listdir, chdir, path
+from shutil import rmtree
 
 import threading, time
 
@@ -42,6 +43,22 @@ from pyvista import themes
 from qlbm.infra.reinitialize import CollisionlessReinitializer
 
 from IPython.display import Image as Draw
+
+class Lattice(CollisionlessLattice):
+
+    dims: list | tuple
+    
+    def __init__(
+            self, 
+            dims: list | tuple, 
+            vs: list | tuple = [4,4]
+        ) -> None:
+        super().__init__(
+            {
+            "lattice": {"dim": {"x": dims[0], "y": dims[1]}, "velocities": {"x": vs[0], "y": vs[1]}},
+            }
+        )
+    pass
 
 def create_animation(simdir: str, output_filename: str):
     """
@@ -124,7 +141,7 @@ def create_animation(simdir: str, output_filename: str):
         images.append(np.array(pil_img))
 
     # Create the GIF from the collected images
-    imageio.mimsave(output_filename, images, duration=3, loop=0)
+    imageio.mimsave(output_filename, images, duration=6, loop=0)
 
 def count_gates(qc: QuantumCircuit):
     """

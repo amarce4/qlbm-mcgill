@@ -12,7 +12,8 @@ class StepCircuit():
                  lattice: CollisionlessLattice | SpaceTimeLattice, 
                  num_steps: int, 
                  init_cond: None | QuantumCircuit = None, 
-                 collision: bool = False):
+                 collision: bool = False
+            ) -> None:
         if collision == False:
             if type(init_cond == None):
                 self.circuit = CollisionlessInitialConditions(lattice).circuit
@@ -20,7 +21,7 @@ class StepCircuit():
                 self.circuit = init_cond
             for i in range(0, num_steps):
                 self.circuit.compose(CQLBM(lattice).circuit, inplace=True)
-                self.circuit.reset([-3,-4,0,1])
+                self.circuit.reset([-3,-4,0,1]) # ancilla qubits
             self.circuit.compose(GridMeasurement(lattice).circuit, inplace=True)
         else:
             if type(init_cond == None):
@@ -52,12 +53,12 @@ class IBM_QPU_Runner():
     def __init__(
             self, 
             dims: list | tuple, 
-            token: str, 
-            vs: list | tuple = [4,4]):
+            name: str, 
+            vs: list | tuple = [4,4]
+        ) -> None:
         
         print(f"Initializing {dims[0]}x{dims[1]} runner... ", end="")
-        self.service = QiskitRuntimeService(channel="ibm_quantum", 
-                               token=token)
+        self.service = QiskitRuntimeService(name=name)
         
         self.dims = dims
         self.lattice = CollisionlessLattice(
@@ -79,7 +80,8 @@ class IBM_QPU_Runner():
             steps: int, 
             shots: int = 8192, 
             collision: bool = False, 
-            init_cond: None | QuantumCircuit = None):
+            init_cond: None | QuantumCircuit = None
+        ):
 
         print("Creating and transpiling circuits... ", end="")
 
@@ -116,40 +118,48 @@ class IBM_QPU_Runner():
             self, 
             steps: int, 
             shots: int | None = None, 
-            collision: bool = False):
+            collision: bool = False
+        ) -> str:
         if collision==False:
-            self.label = "collisionless"
+            self.label = f"collisionless-{self.dims[0]}x{self.dims[1]}-ibm-qpu"
         else:
-            self.label = "with-collision"
+            self.label = f"with-collision-{self.dims[0]}x{self.dims[1]}-ibm-qpu"
 
         print("Creating visualization... ", end="")
 
         job = self.service.job(self.job_id)
         results = job.result()
         counts_data = [list(results[i].data.values())[0].get_counts() for i in range(steps+1)]
- 
-        create_directory_and_parents(f"ibm-qpu-output\\{self.label}-{self.dims[0]}x{self.dims[1]}-ibm-qpu")
+
+        try:
+            rmtree(f"ibm-qpu-output\\{self.label}")
+        except OSError:
+            pass
+
+        create_directory_and_parents(f"ibm-qpu-output\\{self.label}")
         if collision == False:
-            resultGen = CollisionlessResult(self.lattice, f"ibm-qpu-output\\{self.label}-{self.dims[0]}x{self.dims[1]}-ibm-qpu")
+            resultGen = CollisionlessResult(self.lattice, f"ibm-qpu-output\\{self.label}")
         else:
-            resultGen = SpaceTimeResult(self.stm_lattice, f"ibm-qpu-output\\{self.label}-{self.dims[0]}x{self.dims[1]}-ibm-qpu")
+            resultGen = SpaceTimeResult(self.stm_lattice, f"ibm-qpu-output\\{self.label}")
 
         for i in range(steps+1):
             resultGen.save_timestep_counts(counts_data[i], i)
         resultGen.visualize_all_numpy_data()
 
         if (type(shots) == None):
-            create_animation(f"ibm-qpu-output\\{self.label}-{self.dims[0]}x{self.dims[1]}-ibm-qpu\\paraview", f"{self.label}-{self.dims[0]}x{self.dims[1]}-ibm-qpu.gif")
+            create_animation(f"ibm-qpu-output\\{self.label}\\paraview", f"{self.label}.gif")
         elif (type(shots) == int):
-            create_animation(f"ibm-qpu-output\\{self.label}-{self.dims[0]}x{self.dims[1]}-ibm-qpu\\paraview", f"{self.label}-{self.dims[0]}x{self.dims[1]}-ibm-qpu_{shots}_shots.gif")
+            create_animation(f"ibm-qpu-output\\{self.label}\\paraview", f"{self.label}_{shots}_shots.gif")
         print("done.")
-        print(f"Animation saved as ''{self.label}-{self.dims[0]}x{self.dims[1]}-ibm-qpu_{shots}_shots.gif''.")
+        print(f"Animation saved as ''{self.label}_{shots}_shots.gif''.")
+        return f"{self.label}_{shots}_shots.gif"
 
     def make(
             self, 
             steps: int, 
             shots: int = 8192, 
-            init_cond: None | QuantumCircuit = None):
+            init_cond: None | QuantumCircuit = None
+        ) -> str:
         
         job = self.run(steps, shots=shots, init_cond=init_cond)
         
@@ -164,4 +174,5 @@ class IBM_QPU_Runner():
             print(f"Time elapsed: {int(diff/60)} minute(s) and {diff % 60} second(s).", end="")
         print(f"\nData received. Workload: {int(job.usage())} seconds.")
         time.sleep(2) # make them wait for it.
-        self.visualize(steps, shots=shots)
+        vis = self.visualize(steps, shots=shots)
+        return vis
