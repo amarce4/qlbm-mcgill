@@ -4,16 +4,18 @@ Welcome to the QLBM McGill-Calcul Quebec Summer Research Project!
 
 All programs made here use the QLBM software framework by [Calin A. Georgescu et. al.](https://arxiv.org/pdf/2411.19439)
 
-To run a classical collisionless simulation of an 8x8 lattice with D_2Q_8 discretization, running 10 steps with 100 shots per time-step:
+To run a classical collisionless simulation of an 8x8 lattice with D_2Q_8 discretization, running 10 steps with 1024 shots per time-step:
 
 ```python
 # must have 'simulation.py' and 'base.py' in current working directory
 from simulation import Simulation2D
-sim = Simulation2D([8,8], 4)
-sim.sim_QTM(10, 100)
-# sim.sim_STM() can do simulations with collision, but only at a D_2Q_4 discretization
+
+steps = 10
+
+sim = Simulation2D([8,8])
+sim.make(steps, 1024)
 ```
-The PyVista animation will be saved to the CWD with the format: ```collisionless-8x8.gif```.
+The PyVista animation will be saved to the CWD with the format: ```collisionless-sim-8x8.gif```.
 
 To run a IBM QPU job with the same lattice and discretization, but with 2 steps and 8192 shots per time-step:
 (This requires an IBM ```token``` and ```instance```, which are created on the [IBM Quantum Platform](https://quantum.cloud.ibm.com/).)
@@ -24,6 +26,7 @@ from ibm_qpu import IBM_QPU_Runner
 from qiskit_ibm_runtime import QiskitRuntimeService
 
 name = "[custom name, can be set to anything]"
+steps = 2
 
 QiskitRuntimeService.save_account(
   token="[your API token]",
@@ -35,7 +38,7 @@ QiskitRuntimeService.save_account(
 )
 
 runner = IBM_QPU_Runner([8,8], name)
-runner.make(2) # runner.make(2, shots=8192)
+runner.make(steps) # shots set to 8192 by default
 # make() will run() and visualize() the job with a timer to show how long the IBM QPU took
 ```
 
@@ -46,9 +49,24 @@ Some jobs may take a while due to long queues, so the job id may be used instead
 job_id = "[job id]"
 runner = IBM_QPU_Runner([8,8], name)
 runner.job_id = job_id
-runner.visualize(2)
+runner.visualize(steps)
 ```
 The PyVista animation will be saved to the CWD with the format: ```collisionless-8x8-ibm-qpu.gif```.
+
+Noise can be introduced into a classical simulation, with selectable single and double qubit gate error probabilities.
+
+```python
+# must have 'noise_sim.py' and 'base.py' in current working directory
+from noise_sim import Noise_Simulation2D
+
+single_prob = 0.002 # Single qubit gate error probability
+double_prob = 0.01 # Double qubit gate error probability
+steps = 3
+
+noise_sim = Noise_Simulation2D(single_prob, double_prob, [8,8])
+noise_sim.make(steps) # shots set to 1024 by default
+```
+The PyVista animation will be saved to the CWD with the format: ```noisy-collisionless-simulation-8x8_0.002-single-0.01-double.gif```.
 
 ```python
 #
