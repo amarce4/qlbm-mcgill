@@ -48,6 +48,7 @@ from qlbm.infra.reinitialize import CollisionlessReinitializer
 from IPython.display import Image as Draw
 
 from abc import ABC, abstractmethod
+from typing_extensions import override
 
 class Runner(ABC):
     
@@ -135,7 +136,6 @@ class Lattice(CollisionlessLattice):
             "lattice": {"dim": {"x": dims[0], "y": dims[1]}, "velocities": {"x": vs[0], "y": vs[1]}},
             }
         )
-    pass
 
 def rmdir_rf(dir: str):
     try:

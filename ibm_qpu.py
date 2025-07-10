@@ -40,6 +40,7 @@ class IBM_QPU_Runner(Runner):
         )
         print("done.")
 
+    @override
     def run(
             self, 
             steps: int, 
@@ -78,7 +79,8 @@ class IBM_QPU_Runner(Runner):
         print(f"Job ID: {self.job_id}")
 
         return job
-    
+
+    @override
     def visualize(
             self, 
             steps: int, 
@@ -119,6 +121,7 @@ class IBM_QPU_Runner(Runner):
         print(f"Animation saved as ''{self.label}_{shots}_shots.gif''.")
         return f"{self.label}_{shots}_shots.gif"
 
+    @override
     def make(
             self, 
             steps: int, 

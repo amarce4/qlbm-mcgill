@@ -35,6 +35,7 @@ class Noise_Simulation2D(Runner):
             depolarizing_error(single_prob, 1), ["u", "p", "h"]
         )
 
+    @override
     def run(self, steps, shots=1024):
 
         step_qcs = [StepCircuit(self.lattice, i).circuit.decompose() for i in range(steps+1)]
@@ -51,7 +52,7 @@ class Noise_Simulation2D(Runner):
         counts = [list(result[i].data.values())[0].get_counts() for i in range(steps+1)]
         return counts
 
-
+    @override
     def visualize(self, steps, counts):
 
         self.label = f"noisy-collisionless-simulation-{self.dims[0]}x{self.dims[1]}_{self.single_depolarizing_prob}-single-{self.double_depolarizing_prob}-double"
@@ -67,6 +68,7 @@ class Noise_Simulation2D(Runner):
         create_animation(f"noise-sim-output\\{self.label}\\paraview", f"{self.label}.gif")
         return self.label
 
+    @override
     def make(self, steps, shots=1024):
         print(f"Running {self.dims[0]}x{self.dims[1]} simulation with {self.single_depolarizing_prob} single and {self.double_depolarizing_prob} double gate error probabilities...")
         counts = self.run(steps, shots=shots)
