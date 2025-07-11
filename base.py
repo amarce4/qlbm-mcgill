@@ -50,10 +50,19 @@ from IPython.display import Image as Draw
 from abc import ABC, abstractmethod
 from typing_extensions import override
 
+DEFAULT_SHOTS = 1024
+
 class Runner(ABC):
-    
+    """
+    Abstract class on which all runners (simulations and QPUs) are based upon.
+    Attributes:
+        lattice: CollisionlessLattice
+        dims: tuple | list
+        label: str, name of the file without the extension
+    """
     lattice: CollisionlessLattice
     dims: tuple | list
+    label: str
 
     def __init__(self):
         super().__init__()
@@ -94,6 +103,7 @@ class StepCircuit():
     Circuit structure around which the *current* QPU implementation takes.
     0 steps: only initial conditions and grid measurement.
     n steps: initial conditions, n CQLBM algorithm steps, and then grid measurement.
+    In the future, this will become obsolete, when Quantum State Tomography is implemented.
     """
     circuit: QuantumCircuit
 
@@ -123,7 +133,10 @@ class StepCircuit():
         self.circuit = remove_idle_wires(self.circuit)
      
 class Lattice(CollisionlessLattice):
-
+    """
+    Since practical implementations of QLBM will be done on collisionless lattices, 
+    this class serves to simplify the code of declaring a lattice. 
+    """
     dims: list | tuple
     
     def __init__(
@@ -136,8 +149,12 @@ class Lattice(CollisionlessLattice):
             "lattice": {"dim": {"x": dims[0], "y": dims[1]}, "velocities": {"x": vs[0], "y": vs[1]}},
             }
         )
+        self.dims = dims
 
 def rmdir_rf(dir: str):
+    """
+    Recursively forces the removal of an entire directory.
+    """
     try:
         rmtree(dir)
     except OSError:

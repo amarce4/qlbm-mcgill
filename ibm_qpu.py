@@ -2,10 +2,14 @@ from base import *
 
 class IBM_QPU_Runner(Runner):
     """
-    Runs a 2D collisionless job with D_2Q_8 discretization on an IBM QPU.
-    run: runs the job using the Qiskit Sampler primitive. Returns the job that has been run.
-    visualize: takes the counts of the measurement data from the IBM QPU and turns it into a PyVista simulation.
-    draw: draws the animation to the screen. 
+    Runs a 2D QLBM on an IBM QPU.
+    Attributes:
+        stm_lattice: SpaceTimeLattice
+        lattice: CollisionlessLattice
+        job_id: str
+        dims: tuple
+        service: QiskitRuntimeService
+        label: str, name of the file without extension
     """
 
     stm_lattice: SpaceTimeLattice
@@ -44,11 +48,13 @@ class IBM_QPU_Runner(Runner):
     def run(
             self, 
             steps: int, 
-            shots: int = 8192, 
+            shots: int = DEFAULT_SHOTS, 
             collision: bool = False, 
             init_cond: None | QuantumCircuit = None
         ):
-
+        """
+        Runs the job using the Qiskit Sampler primitive. Returns the job that has been run.
+        """
         print("Creating and transpiling circuits... ", end="")
 
         if collision == True:
@@ -87,6 +93,10 @@ class IBM_QPU_Runner(Runner):
             shots: int | None = None, 
             collision: bool = False
         ) -> str:
+        """
+        Takes the counts of the measurement data from the IBM QPU and turns it into a PyVista simulation.
+        Returns the full gif file name.
+        """
         if collision==False:
             self.label = f"collisionless-{self.dims[0]}x{self.dims[1]}-ibm-qpu"
         else:
@@ -103,6 +113,7 @@ class IBM_QPU_Runner(Runner):
         except OSError:
             pass
 
+        rmdir_rf(f"ibm-qpu-output\\{self.label}")
         create_directory_and_parents(f"ibm-qpu-output\\{self.label}")
         if collision == False:
             resultGen = CollisionlessResult(self.lattice, f"ibm-qpu-output\\{self.label}")
@@ -125,10 +136,12 @@ class IBM_QPU_Runner(Runner):
     def make(
             self, 
             steps: int, 
-            shots: int = 8192, 
+            shots: int = DEFAULT_SHOTS, 
             init_cond: None | QuantumCircuit = None
         ) -> str:
-        
+        """
+        Runs and visualizes the lattice.
+        """
         job = self.run(steps, shots=shots, init_cond=init_cond)
         
         start = int(time.time())
