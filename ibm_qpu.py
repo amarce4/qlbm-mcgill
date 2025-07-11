@@ -108,11 +108,11 @@ class IBM_QPU_Runner(Runner):
             self.label = f"mitigated-collisionless-{self.dims[0]}x{self.dims[1]}-ibm-qpu"
 
             measured_qubits = StepCircuit(self.lattice, 0).grid_qubits
-            exp = LocalReadoutError(measured_qubits)
+            exp = CorrelatedReadoutError(measured_qubits)
 
             exp.analysis.set_options(plot=True)
             result = exp.run(self.backend)
-            mitigator = result.analysis_results("Local Readout Mitigator", dataframe=True).iloc[0].value
+            mitigator = result.analysis_results("Correlated Readout Mitigator", dataframe=True).iloc[0].value
             mitigated_quasi_probs = [mitigator.quasi_probabilities(counts) for counts in counts_data]
 
             mitigated_probs = [(prob.nearest_probability_distribution().binary_probabilities()) for prob in mitigated_quasi_probs]
