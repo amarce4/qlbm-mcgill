@@ -11,13 +11,14 @@ To run a classical collisionless simulation of an 8x8 lattice with D_2Q_8 discre
 from simulation import Simulation2D
 
 steps = 10
+shots = 1024
 
 sim = Simulation2D([8,8])
-sim.make(steps, 1024)
+sim.make(steps, shots=1024)
 ```
 The PyVista animation will be saved to the CWD with the format: ```collisionless-sim-8x8.gif```.
 
-To run a IBM QPU job with the same lattice and discretization, but with 2 steps and 8192 shots per time-step:
+To run a IBM QPU job with the same lattice and discretization, but with 2 steps and 1024 shots per time-step:
 (This requires an IBM ```token``` and ```instance```, which are created on the [IBM Quantum Platform](https://quantum.cloud.ibm.com/).)
 
 ```python
@@ -27,6 +28,7 @@ from qiskit_ibm_runtime import QiskitRuntimeService
 
 name = "[custom name, can be set to anything]"
 steps = 2
+shots = 1024
 
 QiskitRuntimeService.save_account(
   token="[your API token]",
@@ -38,7 +40,7 @@ QiskitRuntimeService.save_account(
 )
 
 runner = IBM_QPU_Runner([8,8], name)
-runner.make(steps) # shots set to 8192 by default
+runner.make(steps, shots=shots)
 # make() will run() and visualize() the job with a timer to show how long the IBM QPU took
 ```
 
@@ -49,7 +51,7 @@ Some jobs may take a while due to long queues, so the job id may be used instead
 job_id = "[job id]"
 runner = IBM_QPU_Runner([8,8], name)
 runner.job_id = job_id
-runner.visualize(steps)
+runner.visualize(steps, shots=shots)
 ```
 The PyVista animation will be saved to the CWD with the format: ```collisionless-8x8-ibm-qpu.gif```.
 
@@ -62,9 +64,10 @@ from noise_sim import Noise_Simulation2D
 single_prob = 0.002 # Single qubit gate error probability
 double_prob = 0.01 # Double qubit gate error probability
 steps = 3
+shots = 1024
 
 noise_sim = Noise_Simulation2D(single_prob, double_prob, [8,8])
-noise_sim.make(steps) # shots set to 1024 by default
+noise_sim.make(steps, shots=shots)
 ```
 The PyVista animation will be saved to the CWD with the format: ```noisy-collisionless-simulation-8x8_0.002-single-0.01-double.gif```.
 
