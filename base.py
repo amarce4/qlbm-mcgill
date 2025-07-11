@@ -11,6 +11,9 @@ from qiskit_ibm_runtime import SamplerOptions
 # from qiskit_aer.primitives import EstimatorV2 as Estimator
 # from qiskit_ibm_runtime import EstimatorOptions
 
+from qiskit_experiments.data_processing import LocalReadoutMitigator
+from qiskit_experiments.library import LocalReadoutError, CorrelatedReadoutError
+
 from qiskit import transpile
 from qiskit_aer.noise import NoiseModel, depolarizing_error
 
@@ -31,6 +34,7 @@ from qlbm.infra import QiskitRunner, SimulationConfig
 from qlbm.lattice import CollisionlessLattice
 from qlbm.tools.utils import create_directory_and_parents
 from qlbm.infra.result import CollisionlessResult, SpaceTimeResult
+from qlbm.tools import flatten
 
 from os import listdir, chdir, path
 from shutil import rmtree
@@ -97,7 +101,6 @@ class Runner(ABC):
         """
         pass
 
-
 class StepCircuit():
     """
     Circuit structure around which the *current* QPU implementation takes.
@@ -106,6 +109,7 @@ class StepCircuit():
     In the future, this will become obsolete, when Quantum State Tomography is implemented.
     """
     circuit: QuantumCircuit
+    grid_qubits: list[int]
 
     def __init__(self, 
                  lattice: CollisionlessLattice | SpaceTimeLattice, 
@@ -131,6 +135,11 @@ class StepCircuit():
                 self.circuit.compose(SpaceTimeQLBM(lattice).circuit, inplace=True)
             self.circuit.compose(SpaceTimeGridVelocityMeasurement(lattice).circuit, inplace=True)
         self.circuit = remove_idle_wires(self.circuit)
+
+        all_grid_qubits = flatten(
+            [lattice.grid_index(dim) for dim in range(lattice.num_dims)]
+        )
+        self.grid_qubits = [q - 3 for q in all_grid_qubits]
      
 class Lattice(CollisionlessLattice):
     """

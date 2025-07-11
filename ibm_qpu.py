@@ -17,6 +17,7 @@ class IBM_QPU_Runner(Runner):
     job_id: str
     dims: tuple
     service: QiskitRuntimeService
+    backend: IBMBackend
     label: str
 
     def __init__(
@@ -49,7 +50,6 @@ class IBM_QPU_Runner(Runner):
             self, 
             steps: int, 
             shots: int = DEFAULT_SHOTS, 
-            collision: bool = False, 
             init_cond: None | QuantumCircuit = None
         ):
         """
@@ -57,14 +57,11 @@ class IBM_QPU_Runner(Runner):
         """
         print("Creating and transpiling circuits... ", end="")
 
-        if collision == True:
-            step_qcs = [StepCircuit(self.stm_lattice, i, collision=True, init_cond=init_cond).circuit for i in range(steps+1)]
-        else:
-            step_qcs = [StepCircuit(self.lattice, i, collision=False, init_cond=init_cond).circuit for i in range(steps+1)]
+        step_qcs = [StepCircuit(self.lattice, i, collision=False, init_cond=init_cond).circuit for i in range(steps+1)]
 
-        backend = QiskitRuntimeService().least_busy(simulator=False, operational=True, min_num_qubits=25)
+        self.backend = QiskitRuntimeService().least_busy(simulator=False, operational=True, min_num_qubits=25)
 
-        pass_manager = generate_preset_pass_manager(optimization_level=1, backend=backend)
+        pass_manager = generate_preset_pass_manager(optimization_level=1, backend=self.backend)
         qcs = [pass_manager.run(qc) for qc in step_qcs]
 
         options = SamplerOptions()
@@ -72,10 +69,10 @@ class IBM_QPU_Runner(Runner):
         # Turn on gate twirling. Requires qiskit_ibm_runtime 0.23.0 or later.
         options.twirling.enable_gates = True
         
-        sampler = Sampler(backend, options=options)
+        sampler = Sampler(self.backend, options=options)
 
         print("done.")
-        print(f"Sending {steps} step job to {backend} with {shots} shots per time-step... ", end="")
+        print(f"Sending {steps} step job to {self.backend} with {shots} shots per time-step... ", end="")
 
         job = sampler.run(qcs, shots=shots)
         self.job_id = job.job_id()
@@ -90,23 +87,40 @@ class IBM_QPU_Runner(Runner):
     def visualize(
             self, 
             steps: int, 
-            shots: int | None = None, 
-            collision: bool = False
+            readout_error_mitigation: bool = False,
+            shots: int | None = None
         ) -> str:
         """
         Takes the counts of the measurement data from the IBM QPU and turns it into a PyVista simulation.
         Returns the full gif file name.
         """
-        if collision==False:
-            self.label = f"collisionless-{self.dims[0]}x{self.dims[1]}-ibm-qpu"
-        else:
-            self.label = f"with-collision-{self.dims[0]}x{self.dims[1]}-ibm-qpu"
-
-        print("Creating visualization... ", end="")
+        
+        print("Creating visualization... ")
 
         job = self.service.job(self.job_id)
         results = job.result()
         counts_data = [list(results[i].data.values())[0].get_counts() for i in range(steps+1)]
+
+        
+        if readout_error_mitigation:
+            print("Mitigating readout error...", end="")
+
+            self.label = f"mitigated-collisionless-{self.dims[0]}x{self.dims[1]}-ibm-qpu"
+
+            measured_qubits = StepCircuit(self.lattice, 0).grid_qubits
+            exp = LocalReadoutError(measured_qubits)
+
+            exp.analysis.set_options(plot=True)
+            result = exp.run(self.backend)
+            mitigator = result.analysis_results("Local Readout Mitigator", dataframe=True).iloc[0].value
+            mitigated_quasi_probs = [mitigator.quasi_probabilities(counts) for counts in counts_data]
+
+            mitigated_probs = [(prob.nearest_probability_distribution().binary_probabilities()) for prob in mitigated_quasi_probs]
+
+            mitigated_counts = [{label: int(prob * shots) for label, prob in mitigated_prob.items()} for mitigated_prob in mitigated_probs]
+        else:
+            self.label = f"collisionless-{self.dims[0]}x{self.dims[1]}-ibm-qpu"
+
 
         try:
             rmtree(f"ibm-qpu-output\\{self.label}")
@@ -115,13 +129,14 @@ class IBM_QPU_Runner(Runner):
 
         rmdir_rf(f"ibm-qpu-output\\{self.label}")
         create_directory_and_parents(f"ibm-qpu-output\\{self.label}")
-        if collision == False:
-            resultGen = CollisionlessResult(self.lattice, f"ibm-qpu-output\\{self.label}")
-        else:
-            resultGen = SpaceTimeResult(self.stm_lattice, f"ibm-qpu-output\\{self.label}")
-
+        
+        resultGen = CollisionlessResult(self.lattice, f"ibm-qpu-output\\{self.label}")
+        
         for i in range(steps+1):
-            resultGen.save_timestep_counts(counts_data[i], i)
+            if readout_error_mitigation:
+                resultGen.save_timestep_counts(mitigated_counts[i], i)
+            else:    
+                resultGen.save_timestep_counts(counts_data[i], i)
         resultGen.visualize_all_numpy_data()
 
         if (type(shots) == None):
@@ -137,6 +152,7 @@ class IBM_QPU_Runner(Runner):
             self, 
             steps: int, 
             shots: int = DEFAULT_SHOTS, 
+            readout_error_mitigation: bool = False,
             init_cond: None | QuantumCircuit = None
         ) -> str:
         """
@@ -155,5 +171,5 @@ class IBM_QPU_Runner(Runner):
             print(f"Time elapsed: {int(diff/60)} minute(s) and {diff % 60} second(s).", end="")
         print(f"\nData received. Workload: {int(job.usage())} seconds.")
         time.sleep(2) # make them wait for it.
-        vis = self.visualize(steps, shots=shots)
+        vis = self.visualize(steps, shots=shots, readout_error_mitigation=readout_error_mitigation)
         return vis
