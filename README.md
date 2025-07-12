@@ -79,7 +79,7 @@ The PyVista animation will be saved to the CWD with the format: ```noisy-collisi
 #
 # Implement error mitigation
 #   - Calcul Quebec currently implements the following:
-#         - Readout Measurement Mitigation: correction of measurement errors.
+#         ☑ Readout Measurement Mitigation: correction of measurement errors.
 #           https://qiskit-community.github.io/qiskit-experiments/manuals/measurement/readout_mitigation.html
 #         - Iterative Bayesian Unfolding (IBU): iterative technique to find a more precise
 #           distribution of results.
@@ -89,15 +89,15 @@ The PyVista animation will be saved to the CWD with the format: ```noisy-collisi
 #         - Digital Dynamical Decoupling (DDD): a sequence of identity gates is applied to
 #           inactive qubits during circuit execution to limit decoherence effects.
 #   - Qiskit's Sampler primitive implements:
-#         - Dynamical Decoupling
-#         - Gate Twirling
+#         ☑ Dynamical Decoupling
+#         ☑ Pauli Gate Twirling
 #   - Other mitigation techniques exist, such as
 #         - Multiple circuits can be run simultaneously depending on available qubits, which
 #           can allow redundancy and/or save on resources
 #         - Quantum Repitition Codes, or even Quantum Surface Codes, are also possible to
 #           implement: https://github.com/quantumjim/qec_lectures?tab=readme-ov-file
 #
-# Introduce a decoherence/noise/error model for classical simulation
+# ☑ Introduce a decoherence/noise/error model for classical simulation
 #   - This is important for studying how close we are to implementation in NISQ
 #   - Should be possible using Qiskit's SamplerOptions
 #
@@ -107,7 +107,7 @@ The PyVista animation will be saved to the CWD with the format: ```noisy-collisi
 #   - Post-processing will require conversion of MonarQ PennyLane-formatted result counts to Qiskit
 #     for use in QLBM infrastructure.
 #
-# All: Use Quantum State Tomography (QST) to reinitialize circuits to avoid depth limits
+# Use Quantum State Tomography (QST) to reinitialize circuits to avoid depth limits
 #     https://qiskit-community.github.io/qiskit-experiments/manuals/verification/state_tomography.html
 #   - QST requires 4^n measurements for n qubits, so it may be impossible at larger scale
 #         - 4x2 (smallest visualizable lattice): 5 qubits to measure (3 grid, 2 velocity)
@@ -115,7 +115,7 @@ The PyVista animation will be saved to the CWD with the format: ```noisy-collisi
 #     from there use QST to get the estimated statevector of the grid and velocity qubits,
 #     onto which |0>s are prepended and appended for ancillae, and then used for reinitialization
 #
-# All: Create a method of easily choosing initial conditions
+# Create a method of easily choosing initial conditions
 #   - Gates are applied to grid and velocity qubits to produce initial conditions 
 #
 # Simulation2D: Include obstacles (will not be run through QPU, purely visual)
