@@ -1,4 +1,5 @@
 from base import *
+from error_mitigator import ErrorMitigator
 
 class IBM_QPU_Runner(Runner):
     """
@@ -13,7 +14,7 @@ class IBM_QPU_Runner(Runner):
     """
 
     stm_lattice: SpaceTimeLattice
-    lattice: CollisionlessLattice
+    lattice: CollisionlessLattice | Lattice
     job_id: str
     dims: tuple
     service: QiskitRuntimeService
@@ -29,13 +30,10 @@ class IBM_QPU_Runner(Runner):
         
         print(f"Initializing {dims[0]}x{dims[1]} runner... ", end="")
         self.service = QiskitRuntimeService(name=name)
-        
+        self.backend = QiskitRuntimeService().least_busy(simulator=False, operational=True, min_num_qubits=25)
+
         self.dims = dims
-        self.lattice = CollisionlessLattice(
-            {
-            "lattice": {"dim": {"x": dims[0], "y": dims[1]}, "velocities": {"x": vs[0], "y": vs[1]}},
-            }
-        )
+        self.lattice = Lattice(dims, vs)
         self.stm_lattice = SpaceTimeLattice(
             num_timesteps=1,
             lattice_data={
@@ -58,8 +56,6 @@ class IBM_QPU_Runner(Runner):
         print("Creating and transpiling circuits... ", end="")
 
         step_qcs = [StepCircuit(self.lattice, i, collision=False, init_cond=init_cond).circuit for i in range(steps+1)]
-
-        self.backend = QiskitRuntimeService().least_busy(simulator=False, operational=True, min_num_qubits=25)
 
         pass_manager = generate_preset_pass_manager(optimization_level=1, backend=self.backend)
         qcs = [pass_manager.run(qc) for qc in step_qcs]
@@ -87,8 +83,8 @@ class IBM_QPU_Runner(Runner):
     def visualize(
             self, 
             steps: int, 
+            shots: int,
             readout_error_mitigation: bool = False,
-            shots: int | None = None
         ) -> str:
         """
         Takes the counts of the measurement data from the IBM QPU and turns it into a PyVista simulation.
@@ -99,33 +95,10 @@ class IBM_QPU_Runner(Runner):
 
         job = self.service.job(self.job_id)
         results = job.result()
-        counts_data = [list(results[i].data.values())[0].get_counts() for i in range(steps+1)]
+        raw_counts = [list(results[i].data.values())[0].get_counts() for i in range(steps+1)]
 
-        
-        if readout_error_mitigation:
-            print("Mitigating readout error...", end="")
-
-            self.label = f"mitigated-collisionless-{self.dims[0]}x{self.dims[1]}-ibm-qpu"
-
-            measured_qubits = StepCircuit(self.lattice, 0).grid_qubits
-            exp = CorrelatedReadoutError(measured_qubits)
-
-            exp.analysis.set_options(plot=True)
-            result = exp.run(self.backend)
-            mitigator = result.analysis_results("Correlated Readout Mitigator", dataframe=True).iloc[0].value
-            mitigated_quasi_probs = [mitigator.quasi_probabilities(counts) for counts in counts_data]
-
-            mitigated_probs = [(prob.nearest_probability_distribution().binary_probabilities()) for prob in mitigated_quasi_probs]
-
-            mitigated_counts = [{label: int(prob * shots) for label, prob in mitigated_prob.items()} for mitigated_prob in mitigated_probs]
-        else:
-            self.label = f"collisionless-{self.dims[0]}x{self.dims[1]}-ibm-qpu"
-
-
-        try:
-            rmtree(f"ibm-qpu-output\\{self.label}")
-        except OSError:
-            pass
+        error_mitigator = ErrorMitigator(self.lattice, readout_error_mitigation=readout_error_mitigation)
+        counts, self.label = error_mitigator.readout_error(shots, raw_counts, self.backend)
 
         rmdir_rf(f"ibm-qpu-output\\{self.label}")
         create_directory_and_parents(f"ibm-qpu-output\\{self.label}")
@@ -133,18 +106,14 @@ class IBM_QPU_Runner(Runner):
         resultGen = CollisionlessResult(self.lattice, f"ibm-qpu-output\\{self.label}")
         
         for i in range(steps+1):
-            if readout_error_mitigation:
-                resultGen.save_timestep_counts(mitigated_counts[i], i)
-            else:    
-                resultGen.save_timestep_counts(counts_data[i], i)
+            resultGen.save_timestep_counts(counts[i], i)
+            
         resultGen.visualize_all_numpy_data()
 
-        if (type(shots) == None):
-            create_animation(f"ibm-qpu-output\\{self.label}\\paraview", f"{self.label}.gif")
-        elif (type(shots) == int):
-            create_animation(f"ibm-qpu-output\\{self.label}\\paraview", f"{self.label}_{shots}_shots.gif")
+        create_animation(f"ibm-qpu-output\\{self.label}\\paraview", f"{self.label}_{shots}_shots.gif")
+
         print("done.")
-        print(f"Animation saved as ''{self.label}_{shots}_shots.gif''.")
+        print(f"Animation saved as '{self.label}_{shots}_shots.gif'.")
         return f"{self.label}_{shots}_shots.gif"
 
     @override
