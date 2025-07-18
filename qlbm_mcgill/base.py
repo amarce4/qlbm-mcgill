@@ -1,24 +1,27 @@
-from qiskit_aer import AerSimulator
+# All imports for qlbm-mcgill
+
+# Qiskit imports
 from qiskit import QuantumCircuit, ClassicalRegister
+from qiskit import transpile
 
 from qiskit_ibm_runtime import RuntimeDecoder
+from qiskit_ibm_runtime import RuntimeEncoder
 from qiskit_ibm_runtime import QiskitRuntimeService, IBMBackend
-from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
-
 from qiskit_ibm_runtime import SamplerV2 as Sampler
+from qiskit_ibm_runtime import SamplerOptions
+
+from qiskit_aer import AerSimulator
+from qiskit_aer.noise import NoiseModel, depolarizing_error
 from qiskit_aer.primitives import SamplerV2 as SimSampler
 from qiskit_aer.primitives import EstimatorV2 as SimEstimator
-from qiskit_ibm_runtime import SamplerOptions
-# from qiskit_aer.primitives import EstimatorV2 as Estimator
-# from qiskit_ibm_runtime import EstimatorOptions
+
+from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 
 from qiskit_experiments.data_processing import LocalReadoutMitigator
 from qiskit_experiments.library import LocalReadoutError, CorrelatedReadoutError
 from qiskit_experiments.framework import ExperimentData
 
-from qiskit import transpile
-from qiskit_aer.noise import NoiseModel, depolarizing_error
-
+# QLBM imports
 from qlbm.components import (
     CQLBM,
     CollisionlessInitialConditions,
@@ -37,7 +40,15 @@ from qlbm.lattice import CollisionlessLattice
 from qlbm.tools.utils import create_directory_and_parents
 from qlbm.infra.result import CollisionlessResult, SpaceTimeResult
 from qlbm.tools import flatten
+from qlbm.infra.reinitialize import CollisionlessReinitializer
 
+# PyIBU imports
+# Credit: https://github.com/sidsrinivasan/PyIBU
+from ibu_utils.qc_utils import get_response_matrix
+from ibu_src.IBU import IBU
+import tensorflow as tf
+
+# Misc imports
 from os import listdir, chdir, path
 from shutil import rmtree
 
@@ -50,13 +61,14 @@ import pyvista as pv
 from PIL import Image, ImageDraw
 from pyvista import themes
 
-from qlbm.infra.reinitialize import CollisionlessReinitializer
-
 from IPython.display import Image as Draw
 
 from abc import ABC, abstractmethod
 from typing_extensions import override
 
+from math import log2
+
+# "Macros"
 DEFAULT_SHOTS = 1024
 
 class Runner(ABC):
@@ -78,7 +90,7 @@ class Runner(ABC):
     def run(
         self, 
         steps: int, 
-        shots: int = 1024):
+        shots: int = DEFAULT_SHOTS):
         """
         Runs "steps" number of CQLBM algorithm circuits with "shots" shots.
         """
@@ -88,7 +100,7 @@ class Runner(ABC):
     def visualize(
         self,
         steps: int,
-        shots: int = 1024):
+        shots: int = DEFAULT_SHOTS):
         """
         Visualizes the data in a ".gif" file.
         """
@@ -98,7 +110,7 @@ class Runner(ABC):
     def make(
         self,
         steps: int,
-        shots: int = 1024):
+        shots: int = DEFAULT_SHOTS):
         """
         Runs and visualizes the lattice.
         """
