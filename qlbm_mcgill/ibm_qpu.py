@@ -85,6 +85,7 @@ class IBM_QPU_Runner(Runner):
             self, 
             steps: int, 
             shots: int,
+            job_id: str | None = None,
             readout_error_mitigation: bool = False,
             iterative_bayesian_unfolding: bool = False
         ) -> str:
@@ -94,6 +95,13 @@ class IBM_QPU_Runner(Runner):
         """
         
         print("Creating visualization... ")
+        
+        # IBU needs the transpiled circuits from the backend
+        if (job_id != None):
+            self.job_id = job_id
+            step_qcs = [StepCircuit(self.lattice, i, collision=False).circuit for i in range(steps+1)]
+            pass_manager = generate_preset_pass_manager(optimization_level=1, backend=self.backend)
+            self.transpiled_circuits = [pass_manager.run(qc) for qc in step_qcs]
 
         job = self.service.job(self.job_id)
         results = job.result()
@@ -108,21 +116,10 @@ class IBM_QPU_Runner(Runner):
 
         counts, self.label = error_mitigator.mitigate(self.transpiled_circuits, shots, raw_counts)
 
-        rmdir_rf(f"ibm-qpu-output\\{self.label}")
-        create_directory_and_parents(f"ibm-qpu-output\\{self.label}")
-        
-        resultGen = CollisionlessResult(self.lattice, f"ibm-qpu-output\\{self.label}")
-        
-        for i in range(steps+1):
-            resultGen.save_timestep_counts(counts[i], i)
-            
-        resultGen.visualize_all_numpy_data()
+        vis = super().visualize(counts, steps, shots=shots) # :)
 
-        create_animation(f"ibm-qpu-output\\{self.label}\\paraview", f"{self.label}_{shots}_shots.gif")
-
-        print("done.")
-        print(f"Animation saved as '{self.label}_{shots}_shots.gif'.")
-        return f"{self.label}_{shots}_shots.gif"
+        return vis
+        
 
     @override
     def make(

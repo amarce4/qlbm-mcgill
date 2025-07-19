@@ -1,45 +1,42 @@
 from base import *
 
-# currently a work in progress, do not use
 class REMTable:
-
+    """
+    A lookup table for Readout Error Mitigation (REM) experiment data, to save on QPU time.
+    """
     service: QiskitRuntimeService
-    table: dict
 
     def __init__(self, service):
         self.service = service
-        self.table = {
-            "4x2": "d1oniu0t0npc73fltdqg",
-            "4x4": "d1onjl15jdrc73drondg"
-        }
-        pass
 
     def enter(
         self, 
         dims: list | tuple, 
-        backend: IBMBackend, 
         job_id: str
         ):
+        """
+        Enter a REM experiment into the table by dumping its contents into a .json file.
+        """
         job = self.service.job(job_id)
-        
-        with open(f"rem-table/{backend.name}_{dims[0]}x{dims[1]}.json", "w") as file:
+        with open(f"rem-table/{job.backend().name}_{dims[0]}x{dims[1]}.json", "w") as file:
             json.dump((job.result(), job_id), file, cls=RuntimeEncoder)
-        with open("rem-table/4x2.json", "r") as file:
+
+    def load(
+        self, 
+        dims: list | tuple, 
+        backend: IBMBackend,
+        exp: CorrelatedReadoutError
+        ):
+        """
+        Load REM experiment results from the corresponding .json file.
+        """
+        with open(f"rem-table/{backend.name}_{dims[0]}x{dims[1]}.json", "r") as file:
             raw, job_id = json.load(file, cls=RuntimeDecoder)
-            # data = ExperimentData(experiment=exp)
-            # data._add_result_data(raw, job_id)
-            # result = exp.analysis.run(data)
+            data = ExperimentData(experiment=exp)
+            data._add_result_data(raw, job_id)
+            result = exp.analysis.run(data)
 
-    def load(self, dims, backend):
-
-        pass
-    
-    pass
-
-rem_table = {
-    "4x2": "d1oniu0t0npc73fltdqg",
-    "4x4": "d1onjl15jdrc73drondg"
-}
+        return result
 
 def get_measured_qubits(circuit):
     """
@@ -55,15 +52,21 @@ def get_measured_qubits(circuit):
     
 
 class ErrorMitigator:
-
+    """
+    Contains all methods that mitigate error via post-processing.
+    Currently implements Readout Error Mitigation (REM) and Iterative Bayesian Unfolding (IBU).
+    """
     class ReadoutError:
-        
+        """
+        Retrieves and/or enters results from the REM table based on the boolean "use_table".
+        """
         result: ExperimentData
         
         def __init__(
             self,
             lattice: Lattice,
             backend: IBMBackend,
+            service: QiskitRuntimeService,
             use_table: bool,
             ) -> None:
 
@@ -71,42 +74,32 @@ class ErrorMitigator:
             measured_qubits = StepCircuit(lattice, 1).grid_qubits
             exp = CorrelatedReadoutError(measured_qubits)
             
-            # Use a "lookup table" to avoid redoing REM experiment for a lattice on 
-            # which one has already been performed.
-            # Terrible implementation, needs improvement, but since we're only using
-            # 4x2 (and maybe 4x4) lattices, it works for now
-            if (use_table == True and dims[0] == 4 and dims[1] == 2):
-                with open("rem-table/4x2.json", "r") as file:
-                    raw = json.load(file, cls=RuntimeDecoder)
-                data = ExperimentData(experiment=exp)
-                data._add_result_data(raw, rem_table["4x2"])
-                result = exp.analysis.run(data)
-            elif (use_table == True and dims[0] == 4 and dims[1] == 4):
-                with open("rem-table/4x4.json", "r") as file:
-                    raw = json.load(file, cls=RuntimeDecoder)
-                data = ExperimentData(experiment=exp)
-                data._add_result_data(raw, rem_table["4x4"])
-                result = exp.analysis.run(data)
+            table = REMTable(service)
+            if use_table and path.exists(f"rem-table/{backend.name}_{dims[0]}x{dims[1]}.json"):
+                    result = table.load(dims, backend, exp)
             else:
-                # exp.set_run_options(shots=1024) # i may add a variable to choose shots
                 result = exp.run(backend)
+                table.enter(dims, result.job_ids[0])
             
             self.result = result
 
     dims: list | tuple
     lattice: CollisionlessLattice | Lattice
     backend: IBMBackend
+    service: QiskitRuntimeService
 
     def __init__(
             self,
             lattice: CollisionlessLattice | Lattice,
             backend: IBMBackend,
+            service: QiskitRuntimeService,
             readout_error_mitigation: bool = False,
             iterative_bayesian_unfolding: bool = False
             ) -> None:
         self.lattice = lattice
         self.dims = lattice.dims
         self.backend = backend
+        self.service = service
         self.readout_error_mitigation = readout_error_mitigation
         self.iterative_bayesian_unfolding = iterative_bayesian_unfolding
 
@@ -118,10 +111,9 @@ class ErrorMitigator:
             use_table: bool = True
         ) -> list:
             
-    
         print("Mitigating readout error...")
 
-        result = ErrorMitigator.ReadoutError(self.lattice, self.backend, use_table).result
+        result = ErrorMitigator.ReadoutError(self.lattice, self.backend, self.service, use_table).result
 
         mitigator = result.analysis_results("Correlated Readout Mitigator", dataframe=True).iloc[0].value
         mitigated_quasi_probs = [mitigator.quasi_probabilities(count) for count in counts]
@@ -129,7 +121,6 @@ class ErrorMitigator:
         mitigated_probs = [(prob.nearest_probability_distribution().binary_probabilities()) for prob in mitigated_quasi_probs]
 
         mitigated_counts = [{label: int(prob * shots) for label, prob in mitigated_prob.items()} for mitigated_prob in mitigated_probs]
-        
         
         return mitigated_counts
         
@@ -141,6 +132,7 @@ class ErrorMitigator:
         ) -> list:
         """
         (NOT MY CODE)
+        Modified based on PyIBU tutorial.ipynb
         Credit: https://github.com/sidsrinivasan/PyIBU
         """
         print("Performing Iterative Bayesian Unfolding...")

@@ -96,15 +96,34 @@ class Runner(ABC):
         """
         pass
 
-    @abstractmethod
     def visualize(
         self,
+        counts: list,
         steps: int,
         shots: int = DEFAULT_SHOTS):
         """
-        Visualizes the data in a ".gif" file.
+        Visualizes the data in a ".gif" file. Must set self.label to a string first.
         """
-        pass
+        if (self.label == ""):
+            raise ValueError("self.label cannot be an empty string")
+        if (type(self.label) != str):
+            raise TypeError("self.label must be a string")
+        
+        rmdir_rf(f"vis-output\\{self.label}")
+        create_directory_and_parents(f"vis-output\\{self.label}")
+        
+        resultGen = CollisionlessResult(self.lattice, f"vis-output\\{self.label}")
+        
+        for i in range(steps+1):
+            resultGen.save_timestep_counts(counts[i], i)
+            
+        resultGen.visualize_all_numpy_data()
+
+        create_animation(f"vis-output\\{self.label}\\paraview", f"{self.label}_{shots}_shots.gif")
+
+        print("done.")
+        print(f"Animation saved as '{self.label}_{shots}_shots.gif'.")
+        return f"{self.label}_{shots}_shots.gif"
 
     @abstractmethod
     def make(
