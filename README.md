@@ -4,6 +4,8 @@ Welcome to the QLBM McGill-Calcul Quebec Summer Research Project!
 
 All programs made here use the QLBM software framework by [Calin A. Georgescu et. al.](https://arxiv.org/pdf/2411.19439)
 
+IBU implementation uses already existing code by [sidsrinivasan](https://github.com/sidsrinivasan/PyIBU).
+
 To run a classical collisionless simulation of an 4x4 lattice with D_2Q_8 discretization, running 10 steps with 1024 shots per time-step:
 
 ```python
@@ -19,7 +21,7 @@ sim.make(steps, shots=1024)
 The PyVista animation will be saved to the CWD with the format: ```collisionless-sim-4x4.gif```.
 
 To run a IBM QPU job with the same lattice and discretization, but with 2 steps and 1024 shots per time-step:
-(This requires an IBM ```token``` and ```instance```, which are created on the [IBM Quantum Platform](https://quantum.cloud.ibm.com/).)
+(This requires an IBM ```token``` and ```instance```, which are created on the [IBM Quantum Platform](https://quantum.cloud.ibm.com/)).
 
 ```python
 # must have 'ibm_qpu.py' and 'base.py' in current working directory
@@ -40,22 +42,24 @@ QiskitRuntimeService.save_account(
 ) # This only needs to be run once, and can thus be omitted on all subsequent runs
 
 runner = IBM_QPU_Runner([4,4], name)
-runner.make(steps, shots=shots)
-# To enable Readout Error Mitigation:
-# runner.make(steps, shots=shots, readout_error_mitigation=True)
-# This will cause the filename to change to "mitigated-collisionless-4x4-ibm-qpu_1024_shots.gif"
+# Enable error mitigation:
+runner.make(steps, shots=shots,
+  readout_error_mitigation=True,
+  iterative_bayesian_unfolding=True)
 ```
 
 Some jobs may take a while due to long queues, so the job id may be used instead to create the animation, provided the job is complete:
 
 ```python
-# assuming a KeyboardInterrupt of the previous block of code, so "name" is associated to an IBM account
-job_id = "[job id]"
+# assuming a KeyboardInterrupt of the previous block of code, so 'name', 'steps', 'shots' are defined
+job_id = "[job id]" # retrievable from IBM Quantum Platform Workloads
 runner = IBM_QPU_Runner([4,4], name)
-runner.job_id = job_id
-runner.visualize(steps, shots=shots)
+runner.visualize(steps, shots=shots,
+  job_id=job_id,
+  readout_error_mitigation=True,
+  iterative_bayesian_unfolding=True)
 ```
-The PyVista animation will be saved to the CWD with the format: ```collisionless-4x4-ibm-qpu_1024_shots.gif```.
+The PyVista animation will be saved to the CWD with the format: ```rem-ibu-collisionless-4x4-ibm-qpu_1024_shots.gif```.
 
 Noise can be introduced into a classical simulation, with selectable single and double qubit gate error probabilities:
 
@@ -65,28 +69,30 @@ from noise_sim import Noise_Simulation2D
 
 single_prob = 0.002 # Single qubit gate error probability
 double_prob = 0.01 # Double qubit gate error probability
-steps = 3 # Use a small number of shots, since there is no reinitialization, unlike Simulation2D
+steps = 3 # Use a small number of steps, since there is no reinitialization, unlike Simulation2D
 shots = 1024
 
 noise_sim = Noise_Simulation2D(single_prob, double_prob, [4,4])
 noise_sim.make(steps, shots=shots)
 ```
-The PyVista animation will be saved to the CWD with the format: ```noisy-collisionless-simulation-4x4_0.002-single-0.01-double.gif```.
+The PyVista animation will be saved to the CWD with the format: ```noisy-collisionless-simulation-4x4_0.002-single-0.01-double_1024_shots.gif```.
 
 ```python
 #
 # TODO
 #
+# ☑: currently implemented in qlbm-mcgill
+#
 # Implement error mitigation
 #   - Calcul Quebec currently implements the following:
 #         ☑ Readout Measurement Mitigation: correction of measurement errors.
 #           https://qiskit-community.github.io/qiskit-experiments/manuals/measurement/readout_mitigation.html
-#         - Iterative Bayesian Unfolding (IBU): iterative technique to find a more precise
+#         ☑ Iterative Bayesian Unfolding (IBU): iterative technique to find a more precise
 #           distribution of results.
 #     and are currently developing:
 #         - Zero Noise Extrapolation (ZNE): the circuit is ran at different noise levels to
 #           extrapolate an ideal result at the zero-noise limit.
-#         - Digital Dynamical Decoupling (DDD): a sequence of identity gates is applied to
+#         ☑ Digital Dynamical Decoupling (DDD): a sequence of identity gates is applied to
 #           inactive qubits during circuit execution to limit decoherence effects.
 #   - Qiskit's Sampler primitive implements:
 #         ☑ Dynamical Decoupling
@@ -99,7 +105,6 @@ The PyVista animation will be saved to the CWD with the format: ```noisy-collisi
 #
 # ☑ Introduce a decoherence/noise/error model for classical simulation
 #   - This is important for studying how close we are to implementation in NISQ
-#   - Should be possible using Qiskit's SamplerOptions
 #
 # MonarQRunner: Run jobs on 24 qubit MonarQ, max lattice size 2x2 or maybe 4x2 if lucky
 #   - POSTPONED: MonarQ under mainteance, Yukon only 6 qubits so QLBM unfeasable
