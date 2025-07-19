@@ -70,22 +70,14 @@ class Noise_Simulation2D(Runner):
     @override
     def visualize(
         self, 
+        counts: list,
         steps: int, 
-        counts: list
+        shots: int = DEFAULT_SHOTS
         ) -> str:
 
         self.label = f"noisy-collisionless-simulation-{self.dims[0]}x{self.dims[1]}_{self.single_depolarizing_prob}-single-{self.double_depolarizing_prob}-double"
 
-        rmdir_rf(f"noise-sim-output\\{self.label}")
-        create_directory_and_parents(f"noise-sim-output\\{self.label}")
-        resultGen = CollisionlessResult(self.lattice, f"noise-sim-output\\{self.label}")
-
-        for i in range(steps+1):
-            resultGen.save_timestep_counts(counts[i], i)
-        resultGen.visualize_all_numpy_data()
-
-        create_animation(f"noise-sim-output\\{self.label}\\paraview", f"{self.label}.gif")
-        return self.label
+        return super().visualize(counts, steps, shots=shots) # :)
 
     @override
     def make(
@@ -96,6 +88,6 @@ class Noise_Simulation2D(Runner):
         print(f"Running {self.dims[0]}x{self.dims[1]} simulation with {self.single_depolarizing_prob} single and {self.double_depolarizing_prob} double gate error probabilities...")
         counts = self.run(steps, shots=shots)
         print(f"Creating visualization...")
-        vis = self.visualize(steps, counts)
+        vis = self.visualize(counts, steps, shots=shots)
         print("Done.")
-        return f"{vis}.gif" 
+        return vis 

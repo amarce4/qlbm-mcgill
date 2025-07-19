@@ -16,9 +16,10 @@ class IBM_QPU_Runner(Runner):
     stm_lattice: SpaceTimeLattice
     lattice: CollisionlessLattice | Lattice
     job_id: str
-    dims: tuple
+    dims: list | tuple
     service: QiskitRuntimeService
     backend: IBMBackend
+    transpiled_circuits: list[QuantumCircuit]
     label: str
 
     def __init__(
@@ -58,7 +59,7 @@ class IBM_QPU_Runner(Runner):
         step_qcs = [StepCircuit(self.lattice, i, collision=False, init_cond=init_cond).circuit for i in range(steps+1)]
 
         pass_manager = generate_preset_pass_manager(optimization_level=1, backend=self.backend)
-        qcs = [pass_manager.run(qc) for qc in step_qcs]
+        self.transpiled_circuits = [pass_manager.run(qc) for qc in step_qcs]
 
         options = SamplerOptions()
         options.dynamical_decoupling.enable = True
@@ -70,7 +71,7 @@ class IBM_QPU_Runner(Runner):
         print("done.")
         print(f"Sending {steps} step job to {self.backend} with {shots} shots per time-step... ", end="")
 
-        job = sampler.run(qcs, shots=shots)
+        job = sampler.run(self.transpiled_circuits, shots=shots)
         self.job_id = job.job_id()
 
         print("done.")
@@ -84,7 +85,9 @@ class IBM_QPU_Runner(Runner):
             self, 
             steps: int, 
             shots: int,
+            job_id: str | None = None,
             readout_error_mitigation: bool = False,
+            iterative_bayesian_unfolding: bool = False
         ) -> str:
         """
         Takes the counts of the measurement data from the IBM QPU and turns it into a PyVista simulation.
@@ -92,29 +95,31 @@ class IBM_QPU_Runner(Runner):
         """
         
         print("Creating visualization... ")
+        
+        # IBU needs the transpiled circuits from the backend
+        if (job_id != None):
+            self.job_id = job_id
+            step_qcs = [StepCircuit(self.lattice, i, collision=False).circuit for i in range(steps+1)]
+            pass_manager = generate_preset_pass_manager(optimization_level=1, backend=self.backend)
+            self.transpiled_circuits = [pass_manager.run(qc) for qc in step_qcs]
 
         job = self.service.job(self.job_id)
         results = job.result()
         raw_counts = [list(results[i].data.values())[0].get_counts() for i in range(steps+1)]
 
-        error_mitigator = ErrorMitigator(self.lattice, readout_error_mitigation=readout_error_mitigation)
-        counts, self.label = error_mitigator.readout_error(shots, raw_counts, self.backend)
+        error_mitigator = ErrorMitigator(
+            self.lattice, 
+            self.backend,
+            readout_error_mitigation=readout_error_mitigation,
+            iterative_bayesian_unfolding=iterative_bayesian_unfolding
+        )
 
-        rmdir_rf(f"ibm-qpu-output\\{self.label}")
-        create_directory_and_parents(f"ibm-qpu-output\\{self.label}")
+        counts, self.label = error_mitigator.mitigate(self.transpiled_circuits, shots, raw_counts)
+
+        vis = super().visualize(counts, steps, shots=shots) # :)
+
+        return vis
         
-        resultGen = CollisionlessResult(self.lattice, f"ibm-qpu-output\\{self.label}")
-        
-        for i in range(steps+1):
-            resultGen.save_timestep_counts(counts[i], i)
-            
-        resultGen.visualize_all_numpy_data()
-
-        create_animation(f"ibm-qpu-output\\{self.label}\\paraview", f"{self.label}_{shots}_shots.gif")
-
-        print("done.")
-        print(f"Animation saved as '{self.label}_{shots}_shots.gif'.")
-        return f"{self.label}_{shots}_shots.gif"
 
     @override
     def make(
@@ -122,6 +127,7 @@ class IBM_QPU_Runner(Runner):
             steps: int, 
             shots: int = DEFAULT_SHOTS, 
             readout_error_mitigation: bool = False,
+            iterative_bayesian_unfolding: bool = False,
             init_cond: None | QuantumCircuit = None
         ) -> str:
         """
@@ -140,5 +146,9 @@ class IBM_QPU_Runner(Runner):
             print(f"Time elapsed: {int(diff/60)} minute(s) and {diff % 60} second(s).", end="")
         print(f"\nData received. Workload: {int(job.usage())} seconds.")
         time.sleep(2) # make them wait for it.
-        vis = self.visualize(steps, shots=shots, readout_error_mitigation=readout_error_mitigation)
+        vis = self.visualize(
+            steps, shots=shots, 
+            readout_error_mitigation=readout_error_mitigation,
+            iterative_bayesian_unfolding=iterative_bayesian_unfolding
+        )
         return vis
