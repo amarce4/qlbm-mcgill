@@ -6,6 +6,12 @@ All programs made here use the QLBM software framework by [Calin A. Georgescu et
 
 IBU implementation uses already existing code by [sidsrinivasan](https://github.com/sidsrinivasan/PyIBU).
 
+This repository has many dependencies. The following should cover all of them:
+
+```shell
+pip install qlbm jax tensorflow qiskit_ibm_runtime qiskit_aer qiskit_experiments pyvista
+```
+
 To run a classical collisionless simulation of an 4x4 lattice with D_2Q_8 discretization, running 10 steps with 1024 shots per time-step:
 
 ```python
