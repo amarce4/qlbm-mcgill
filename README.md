@@ -9,7 +9,13 @@ IBU implementation uses already existing code by [sidsrinivasan](https://github.
 This repository has many dependencies. The following should cover all of them:
 
 ```shell
-pip install qlbm jax tensorflow qiskit_ibm_runtime qiskit_aer qiskit_experiments pyvista
+pip install qlbm jax==0.6.2 tensorflow qiskit_ibm_runtime qiskit_aer qiskit_experiments pyvista imageio 
+```
+
+QLBM may install an unsupported Qiskit version. If so, this should fix it:
+
+```shell
+pip install --force-reinstall qiskit<2.0
 ```
 
 To run a classical collisionless simulation of an 4x4 lattice with D_2Q_8 discretization, running 10 steps with 1024 shots per time-step:
