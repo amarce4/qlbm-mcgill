@@ -9,7 +9,7 @@ IBU implementation uses already existing code by [sidsrinivasan](https://github.
 This repository has many dependencies. The following should cover all of them:
 
 ```shell
-pip install qlbm jax==0.6.2 tensorflow qiskit_ibm_runtime qiskit_aer qiskit_experiments pyvista imageio 
+pip install qlbm jax==0.6.2 tensorflow qiskit_ibm_runtime qiskit_aer qiskit_experiments pyvista imageio mitiq qbraid ply
 ```
 
 QLBM may install an unsupported Qiskit version. If so, this should fix it:
@@ -53,24 +53,14 @@ QiskitRuntimeService.save_account(
   set_as_default=True
 ) # This only needs to be run once, and can thus be omitted on all subsequent runs
 
-runner = IBM_QPU_Runner([4,4], name)
-# Enable error mitigation:
-runner.make(steps, shots=shots,
-  readout_error_mitigation=True,
-  iterative_bayesian_unfolding=True)
+runner = IBM_QPU_Runner([4,4], name,
+  # Enable error mitigation:
+  zero_noise_extrapolation=True,
+  equalization=True
+)
+runner.make(steps, shots=shots)
 ```
 
-Some jobs may take a while due to long queues, so the job id may be used instead to create the animation, provided the job is complete:
-
-```python
-# assuming a KeyboardInterrupt of the previous block of code, so 'name', 'steps', 'shots' are defined
-job_id = "[job id]" # retrievable from IBM Quantum Platform Workloads
-runner = IBM_QPU_Runner([4,4], name)
-runner.visualize(steps, shots=shots,
-  job_id=job_id,
-  readout_error_mitigation=True,
-  iterative_bayesian_unfolding=True)
-```
 The PyVista animation will be saved to the CWD with the format: ```rem-ibu-collisionless-4x4-ibm-qpu_1024_shots.gif```.
 
 Noise can be introduced into a classical simulation, with selectable single and double qubit gate error probabilities:
@@ -102,7 +92,7 @@ The PyVista animation will be saved to the CWD with the format: ```noisy-collisi
 #         ☑ Iterative Bayesian Unfolding (IBU): iterative technique to find a more precise
 #           distribution of results.
 #     and are currently developing:
-#         - Zero Noise Extrapolation (ZNE): the circuit is ran at different noise levels to
+#         ☑ Zero Noise Extrapolation (ZNE): the circuit is ran at different noise levels to
 #           extrapolate an ideal result at the zero-noise limit.
 #         ☑ Digital Dynamical Decoupling (DDD): a sequence of identity gates is applied to
 #           inactive qubits during circuit execution to limit decoherence effects.
@@ -142,3 +132,4 @@ The PyVista animation will be saved to the CWD with the format: ```noisy-collisi
 #   - Low priority due to poor visualization. Better software may help.
 #
 ```
+
