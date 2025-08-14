@@ -6,10 +6,10 @@ All programs made here use the QLBM software framework by [Calin A. Georgescu et
 
 IBU implementation uses already existing code by [sidsrinivasan](https://github.com/sidsrinivasan/PyIBU).
 
-This repository has many dependencies. The following should cover all of them:
+This repository has many dependencies, which can be installed by:
 
 ```shell
-pip install qlbm jax==0.6.2 tensorflow qiskit_ibm_runtime qiskit_aer qiskit_experiments pyvista imageio mitiq qbraid ply
+pip install -r requirements.txt
 ```
 
 QLBM may install an unsupported Qiskit version. If so, this should fix it:
@@ -132,4 +132,5 @@ The PyVista animation will be saved to the CWD with the format: ```noisy-collisi
 #   - Low priority due to poor visualization. Better software may help.
 #
 ```
+
 
