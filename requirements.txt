@@ -1,0 +1,9 @@
+imageio==2.37.0
+jax==0.6.2
+mitiq==0.46.0
+ply==3.11
+pyvista==0.45.3
+qbraid==0.9.8
+qiskit-experiments==0.11.0
+qlbm==0.0.4
+tensorflow==2.19.0
