@@ -1,4 +1,4 @@
-﻿# qlbm-mcgill
+# qlbm-mcgill
 
 Welcome to the QLBM McGill-Calcul Quebec Summer Research Project!
 
@@ -114,13 +114,8 @@ The PyVista animation will be saved to the CWD with the format: ```noisy-collisi
 #   - Post-processing will require conversion of MonarQ PennyLane-formatted result counts to Qiskit
 #     for use in QLBM infrastructure.
 #
-# Use Quantum State Tomography (QST) to reinitialize circuits to avoid depth limits
-#     https://qiskit-community.github.io/qiskit-experiments/manuals/verification/state_tomography.html
-#   - QST requires 4^n measurements for n qubits, so it may be impossible at larger scale
-#         - 4x2 (smallest visualizable lattice): 5 qubits to measure (3 grid, 2 velocity)
-#   - We will first require decent results from 1 time-step run on a QPU,
-#     from there use QST to get the estimated statevector of the grid and velocity qubits,
-#     onto which |0>s are prepended and appended for ancillae, and then used for reinitialization
+# Implement reinitialization
+#   - Use the counts format of list[dict] to get quasi-probs and then convert to statevector
 #
 # Create a method of easily choosing initial conditions
 #   - Gates are applied to grid and velocity qubits to produce initial conditions 
