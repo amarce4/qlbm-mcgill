@@ -8,6 +8,7 @@ from qiskit_ibm_runtime import RuntimeDecoder
 from qiskit_ibm_runtime import RuntimeEncoder
 from qiskit_ibm_runtime import QiskitRuntimeService, IBMBackend
 from qiskit_ibm_runtime import SamplerV2 as Sampler
+from qiskit_ibm_runtime import EstimatorV2 as Estimator
 from qiskit_ibm_runtime import SamplerOptions
 
 from qiskit_aer import AerSimulator
@@ -30,7 +31,7 @@ from qlbm.components import (
 )
 from qlbm.components import EmptyPrimitive
 from qlbm.components.spacetime import (
-    PointWiseSpaceTimeInitialConditions,
+    SpaceTimeInitialConditions,
     SpaceTimeGridVelocityMeasurement,
     SpaceTimeQLBM,
 )
@@ -49,8 +50,12 @@ from ibu_src.IBU import IBU
 import tensorflow as tf
 
 # Misc imports
+from qbraid import load_program
+
 from os import listdir, chdir, path
 from shutil import rmtree
+
+from itertools import product
 
 import json
 import threading, time
@@ -70,6 +75,8 @@ from math import log2
 
 # "Macros"
 DEFAULT_SHOTS = 1024
+DEFAULT_STEPS = 1
+DEFAULT_DIMS = [4,4]
 
 class Runner(ABC):
     """
@@ -158,22 +165,26 @@ class StepCircuit():
                 self.circuit = init_cond
             for i in range(0, num_steps):
                 self.circuit.compose(CQLBM(lattice).circuit, inplace=True)
-                self.circuit.reset([-3,-4,0,1]) # ancilla qubits
+                # self.circuit.reset([-3,-4,0,1]) # ancilla qubits
             self.circuit.compose(GridMeasurement(lattice).circuit, inplace=True)
         else:
             if type(init_cond == None):
-                self.circuit = PointWiseSpaceTimeInitialConditions(lattice, grid_data=[((1, 5), (True, True, True, True))]).circuit
+                self.circuit = SpaceTimeInitialConditions(lattice, grid_data=[((1, 5), (True, True, True, True))]).circuit
             else:
                 self.circuit = init_cond
             for i in range(0, num_steps):
                 self.circuit.compose(SpaceTimeQLBM(lattice).circuit, inplace=True)
             self.circuit.compose(SpaceTimeGridVelocityMeasurement(lattice).circuit, inplace=True)
-        self.circuit = remove_idle_wires(self.circuit)
-
+        
         all_grid_qubits = flatten(
             [lattice.grid_index(dim) for dim in range(lattice.num_dims)]
         )
         self.grid_qubits = [q - 3 for q in all_grid_qubits]
+
+        # Remove idle qubits
+        qprogram = load_program(self.circuit)
+        qprogram.remove_idle_qubits()
+        self.circuit = qprogram.program
      
 class Lattice(CollisionlessLattice):
     """
@@ -286,27 +297,11 @@ def create_animation(simdir: str, output_filename: str):
     # Create the GIF from the collected images
     imageio.mimsave(output_filename, images, duration=6, loop=0)
 
-def count_gates(qc: QuantumCircuit):
-    """
-    Helper function for remove_idle_wires()
-    (NOT MY WORK: credit to Qiskit)
-    """
-    gate_count = { qubit: 0 for qubit in qc.qubits }
-    for gate in qc.data:
-        for qubit in gate.qubits:
-            gate_count[qubit] += 1
-    return gate_count
-
-def remove_idle_wires(qc: QuantumCircuit):
-    """
-    Removes any wires that do not have any gates acting upon them.
-    This is useful for ibm_qpu.StepCircuit, since extra ancilla qubits are added to the circuit 
-    for use in obstacle operators. Since we are not using obstacles, these qubits can be removed.
-    (NOT MY WORK: credit to Qiskit)
-    """
-    qc_out = qc.copy()
-    gate_count = count_gates(qc_out)
-    for qubit, count in gate_count.items():
-        if count == 0:
-            qc_out.qubits.remove(qubit)
-    return qc_out
+def generate_bitstrings(n: int) -> list[str]:
+    bitstrings = []
+    for x in product("01", repeat=n):
+        bit = ""
+        for b in x:
+            bit += b
+        bitstrings += [bit]
+    return bitstrings

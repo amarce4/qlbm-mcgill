@@ -1,4 +1,6 @@
 from base import *
+from mitiq import zne
+from mitiq.interface.mitiq_qiskit.qiskit_utils import initialized_depolarizing_noise
 
 class REMTable:
     """
@@ -87,22 +89,29 @@ class ErrorMitigator:
     lattice: CollisionlessLattice | Lattice
     backend: IBMBackend
     service: QiskitRuntimeService
+    equalization: bool
+    readout_error_mitigation: bool
+    iterative_bayesian_unfolding: bool
+    zero_noise_extrapolation: bool
 
     def __init__(
             self,
             lattice: CollisionlessLattice | Lattice,
             backend: IBMBackend,
             service: QiskitRuntimeService,
+            equalization: bool = False,
             readout_error_mitigation: bool = False,
-            iterative_bayesian_unfolding: bool = False
-            ) -> None:
+            iterative_bayesian_unfolding: bool = False,
+            zero_noise_extrapolation: bool = False
+        ) -> None:
         self.lattice = lattice
         self.dims = lattice.dims
         self.backend = backend
         self.service = service
+        self.equalization = equalization
         self.readout_error_mitigation = readout_error_mitigation
         self.iterative_bayesian_unfolding = iterative_bayesian_unfolding
-
+        self.zero_noise_extrapolation = zero_noise_extrapolation
     
     def rem(
             self,
@@ -173,13 +182,117 @@ class ErrorMitigator:
 
         return ibu_mitigated
     
+    def zne(
+            self,
+            shots: int,
+            steps: int = 1
+        ) -> tuple[list[dict], str]:
+        """
+        Runs Zero Noise Extrapolation. Omits the 0th step of the visualization since it is of depth 1 and thus gets good results.
+
+        """
+        print("Performing Zero Noise Extrapolation...")
+
+        step_qcs = [StepCircuit(self.lattice, step) for step in range(steps+1)]
+        circuits = [step_qc.circuit for step_qc in step_qcs]
+
+        # This is how the 0th step is omitted; it will be run normally and prepended at the end.
+        first = circuits.pop(0)
+
+        measured_qubits = step_qcs[0].grid_qubits
+
+        scale_factors = np.array([1., 1.5, 2., 2.5, 3., 3.5, 4.])
+        folded_circuits = [[
+                zne.scaling.fold_gates_at_random(circuit, scale)
+                for scale in scale_factors
+        ] for circuit in circuits ]
+
+        pm = generate_preset_pass_manager(
+            backend=self.backend,
+            basis_gates=None,
+            optimization_level=0, # Important to preserve folded gates.
+        )
+        
+        first_exec = pm.run([first])
+
+        exec_circuits = [pm.run(folded_circuit) for folded_circuit in folded_circuits]
+        
+        sampler = Sampler(self.backend)
+
+        first_job = sampler.run(first_exec)
+
+        jobs = [sampler.run(exec_circuit, shots=shots) for exec_circuit in exec_circuits]
+
+        # Raw
+        all_counts = [[job.result()[i].join_data().get_counts() for i in range(len(scale_factors))] for job in jobs]
+        # REM implementation
+        all_counts = [self.rem(shots, all_count) for all_count in all_counts]
+        # IBU Implementation
+        all_counts = [self.ibu(circ, shots, count) for circ, count in zip(exec_circuits, all_counts)]
+
+        bitstrings = generate_bitstrings(len(measured_qubits))
+
+        # Array of arrays of expectation values of bitstrings
+        # [[circuit 1 exp vals], [circuit 2 exp vals]]
+        all_exps_arr = []
+
+        for step in range(0, steps):
+            all_exps = {}
+            for bitstring in bitstrings:
+                try:
+                    all_exps[bitstring] = [counts.get(bitstring) / shots for counts in all_counts[step]]
+                except TypeError:
+                    all_exps[bitstring] = [0 for counts in all_counts[step]]
+            all_exps_arr += [all_exps]
+
+        zero_noise_values_arr = [[zne.PolyFactory.extrapolate(scale_factors, exp, 2) for exp in all_exps.values()] for all_exps in all_exps_arr]
+        m_vals = [[int(znv * shots) for znv in zero_noise_values] for zero_noise_values in zero_noise_values_arr]
+        
+        mitigated_counts = [dict(zip(bitstrings, m_val)) for m_val in m_vals]
+        
+        mitigated_counts.insert(0, first_job.result()[0].join_data().get_counts())
+
+        if self.equalization:
+            mitigated_counts = self.equalize(mitigated_counts, shots)
+
+        label = f"zne-collisionless-{self.dims[0]}x{self.dims[1]}-ibm-qpu"
+
+        return mitigated_counts, label
+        
+    def equalize(
+            self,
+            counts: list[dict],
+            shots: int
+        ) -> list[dict]:
+        """
+        "Equalizes" the visualization by cropping the lowest-counted half of the data and setting 
+        the highest-counted half to the theoretically correct number of counts, which is:
+        shots / 0.5*x*y, where [x,y] are the dimensions.
+        Currently only implemented for ZNE.
+        """
+
+        measured_qubits = StepCircuit(self.lattice, 0).grid_qubits
+        equalized_counts = []
+
+        for count in counts:
+            cutoff = sorted(list(count.values()))[2 ** (len(measured_qubits) - 1)]
+            eq_count = {}
+            for key, val in count.items():
+                if val < cutoff:
+                    eq_count.update({key : 0})
+                else:
+                    eq_count.update({key: shots/(self.lattice.dims[0] * self.lattice.dims[1] * 0.5)})
+            equalized_counts += [eq_count]
+        
+        return equalized_counts
+
     def mitigate(
         self,
         qcs: list[QuantumCircuit],
         shots: int,
         counts: list,
-        ) -> tuple[list, str]:
-
+        ) -> tuple[list[dict], str]:
+        
         # Data shows that performing REM and then IBU yields better results.
         if (self.readout_error_mitigation == False and self.iterative_bayesian_unfolding == False):
             label = f"raw-collisionless-{self.dims[0]}x{self.dims[1]}-ibm-qpu"
