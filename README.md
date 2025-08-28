@@ -61,7 +61,7 @@ runner = IBM_QPU_Runner([4,4], name,
 runner.make(steps, shots=shots)
 ```
 
-The PyVista animation will be saved to the CWD with the format: ```rem-ibu-collisionless-4x4-ibm-qpu_1024_shots.gif```.
+The PyVista animation will be saved to the CWD with the format: ```zne-collisionless-4x4-ibm-qpu_1024_shots.gif```.
 
 Noise can be introduced into a classical simulation, with selectable single and double qubit gate error probabilities:
 
@@ -127,5 +127,6 @@ The PyVista animation will be saved to the CWD with the format: ```noisy-collisi
 #   - Low priority due to poor visualization. Better software may help.
 #
 ```
+
 
 
