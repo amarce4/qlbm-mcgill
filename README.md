@@ -86,7 +86,7 @@ The PyVista animation will be saved to the CWD with the format: ```noisy-collisi
 # ☑: currently implemented in qlbm-mcgill
 #
 # Implement error mitigation
-#   - Calcul Quebec currently implements the following:
+#   - Calcul Quebec currently implements
 #         ☑ Readout Measurement Mitigation: correction of measurement errors.
 #           https://qiskit-community.github.io/qiskit-experiments/manuals/measurement/readout_mitigation.html
 #         ☑ Iterative Bayesian Unfolding (IBU): iterative technique to find a more precise
@@ -104,6 +104,7 @@ The PyVista animation will be saved to the CWD with the format: ```noisy-collisi
 #           can allow redundancy and/or save on resources
 #         - Quantum Repitition Codes, or even Quantum Surface Codes, are also possible to
 #           implement: https://github.com/quantumjim/qec_lectures?tab=readme-ov-file
+#         - Dual Unitary Error Mitgation https://doi.org/10.1038/s41567-025-03144-9
 #
 # ☑ Introduce a decoherence/noise/error model for classical simulation
 #   - This is important for studying how close we are to implementation in NISQ
@@ -127,6 +128,7 @@ The PyVista animation will be saved to the CWD with the format: ```noisy-collisi
 #   - Low priority due to poor visualization. Better software may help.
 #
 ```
+
 
 
 
