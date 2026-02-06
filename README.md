@@ -1,7 +1,5 @@
 # qlbm-mcgill
 
-Welcome to the QLBM McGill-Calcul Quebec Summer Research Project!
-
 All programs made here use the QLBM software framework by [Calin A. Georgescu et. al.](https://arxiv.org/pdf/2411.19439)
 
 IBU implementation uses already existing code by [sidsrinivasan](https://github.com/sidsrinivasan/PyIBU).
@@ -18,7 +16,7 @@ QLBM may install an unsupported Qiskit version. If so, this should fix it:
 pip install --force-reinstall qiskit<2.0
 ```
 
-To run a classical collisionless simulation of an 4x4 lattice with D_2Q_8 discretization, running 10 steps with 1024 shots per time-step:
+To run a classical collisionless simulation of an 16x16 lattice with D_2Q_8 discretization, running 10 steps with 1024 shots per time-step:
 
 ```python
 # must have 'simulation.py' and 'base.py' in current working directory
@@ -27,10 +25,11 @@ from simulation import Simulation2D
 steps = 10
 shots = 1024
 
-sim = Simulation2D([4,4])
+sim = Simulation2D([16,16])
 sim.make(steps, shots=1024)
 ```
-The PyVista animation will be saved to the CWD with the format: ```collisionless-sim-4x4.gif```.
+The PyVista animation will be saved to the CWD with the format: ```collisionless-sim-16x16.gif```.
+![hippo](https://github.com/amarce4/qlbm-mcgill/blob/main/visualizations/sim-gifs/collisionless-16x16.gif)
 
 To run a IBM QPU job with the same lattice and discretization, but with 2 steps and 1024 shots per time-step:
 (This requires an IBM ```token``` and ```instance```, which are created on the [IBM Quantum Platform](https://quantum.cloud.ibm.com/)).
@@ -105,6 +104,10 @@ The PyVista animation will be saved to the CWD with the format: ```noisy-collisi
 #         - Quantum Repitition Codes, or even Quantum Surface Codes, are also possible to
 #           implement: https://github.com/quantumjim/qec_lectures?tab=readme-ov-file
 #         - Dual Unitary Error Mitgation https://doi.org/10.1038/s41567-025-03144-9
+#              - Tensor Network Error Mitigation https://arxiv.org/pdf/2307.11740
+#
+# Implement reinitialization
+#   - Use the counts format of list[dict{lattice bitsring : count}] to get quasi-probabilitiess & convert to statevector
 #
 # ☑ Introduce a decoherence/noise/error model for classical simulation
 #   - This is important for studying how close we are to implementation in NISQ
@@ -114,9 +117,6 @@ The PyVista animation will be saved to the CWD with the format: ```noisy-collisi
 #   - Need a way to convert Qiskit StepCircuit.circuit array to PennyLane (done in one function)
 #   - Post-processing will require conversion of MonarQ PennyLane-formatted result counts to Qiskit
 #     for use in QLBM infrastructure.
-#
-# Implement reinitialization
-#   - Use the counts format of list[dict] to get quasi-probs and then convert to statevector
 #
 # Create a method of easily choosing initial conditions
 #   - Gates are applied to grid and velocity qubits to produce initial conditions 
@@ -128,6 +128,7 @@ The PyVista animation will be saved to the CWD with the format: ```noisy-collisi
 #   - Low priority due to poor visualization. Better software may help.
 #
 ```
+
 
 
 
